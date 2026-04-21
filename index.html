@@ -43,7 +43,7 @@
       background: #2563eb;
       border-radius: 999px;
       width: 0%;
-      transition: width 4s linear;
+      transition: width 6s linear;
     }
     .warning {
       font-size: 13px;
@@ -137,14 +137,14 @@
 
       setTimeout(function() {
         window.location.href = destination;
-      }, 4000);
+      }, 6000);
 
       setTimeout(function() {
         var btn = document.getElementById('continue-btn');
         var warn = document.getElementById('warning');
         if (btn) { btn.style.display = 'block'; btn.href = destination; }
         if (warn) warn.style.display = 'none';
-      }, 4000);
+      }, 6000);
     }
   </script>
 </body>
