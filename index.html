@@ -43,7 +43,7 @@
       background: #2563eb;
       border-radius: 999px;
       width: 0%;
-      transition: width 20s linear;
+      transition: width 4s linear;
     }
     .warning {
       font-size: 13px;
@@ -53,6 +53,22 @@
       padding: 8px 14px;
       display: inline-block;
     }
+    .continue-btn {
+      display: none;
+      margin-top: 20px;
+      background: #2563eb;
+      color: #fff;
+      font-size: 18px;
+      font-weight: 700;
+      border: none;
+      border-radius: 12px;
+      padding: 14px 32px;
+      cursor: pointer;
+      text-decoration: none;
+      width: 100%;
+      text-align: center;
+    }
+    .continue-btn:active { background: #1d4ed8; }
     .done-icon { font-size: 56px; margin-bottom: 16px; }
     .done-title { font-size: 24px; color: #15803d; font-weight: 700; margin-bottom: 10px; }
     .done-sub { font-size: 16px; color: #555; }
@@ -107,7 +123,10 @@
         '<p class="sub">נותרו עוד <strong>' + remaining + '</strong> מסמכים להצטרף למשפחת יומנגס.</p>' +
         '<p class="next-label">קדימה, מיד מעבירים אותך למסמך <strong>' + formLabel + '</strong></p>' +
         '<div class="progress-bar-bg"><div class="progress-bar-fill" id="bar"></div></div>' +
-        '<span class="warning">⚠️ אל תסגור את הדף</span>';
+        '<span class="warning" id="warning">⚠️ אל תסגור את הדף</span>' +
+        '<a class="continue-btn" id="continue-btn" href="#">המשך לחתימה הבאה ←</a>';
+
+      var destination = decodeURIComponent(next);
 
       requestAnimationFrame(function() {
         requestAnimationFrame(function() {
@@ -116,10 +135,16 @@
         });
       });
 
-      var destination = decodeURIComponent(next);
       setTimeout(function() {
         window.location.href = destination;
-      }, 20000);
+      }, 4000);
+
+      setTimeout(function() {
+        var btn = document.getElementById('continue-btn');
+        var warn = document.getElementById('warning');
+        if (btn) { btn.style.display = 'block'; btn.href = destination; }
+        if (warn) warn.style.display = 'none';
+      }, 4000);
     }
   </script>
 </body>
