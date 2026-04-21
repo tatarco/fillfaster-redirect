@@ -43,7 +43,7 @@
       background: #2563eb;
       border-radius: 999px;
       width: 0%;
-      transition: width 4s linear;
+      transition: width 20s linear;
     }
     .warning {
       font-size: 13px;
@@ -103,9 +103,9 @@
       card.innerHTML =
         logoHtml +
         '<div class="icon">✅</div>' +
-        '<h1>סיימת לחתום על ' + signedLabel + '!</h1>' +
-        '<p class="sub">נותרו עוד <strong>' + remaining + '</strong> מסמכים — אנחנו כמעט שם!</p>' +
-        '<p class="next-label">בעוד רגע תועבר לחתום על: <strong>' + formLabel + '</strong></p>' +
+        '<h1>איזה כיף, השלמת בהצלחה חתימה על ' + signedLabel + '</h1>' +
+        '<p class="sub">נותרו עוד <strong>' + remaining + '</strong> מסמכים להצטרף למשפחת יומנגס.</p>' +
+        '<p class="next-label">קדימה, מיד מעבירים אותך למסמך <strong>' + formLabel + '</strong></p>' +
         '<div class="progress-bar-bg"><div class="progress-bar-fill" id="bar"></div></div>' +
         '<span class="warning">⚠️ אל תסגור את הדף</span>';
 
@@ -119,7 +119,7 @@
       var destination = decodeURIComponent(next);
       setTimeout(function() {
         window.location.href = destination;
-      }, 4000);
+      }, 20000);
     }
   </script>
 </body>
