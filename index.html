@@ -29,29 +29,51 @@
     h1 { font-size: 22px; color: #1a1a2e; margin-bottom: 8px; font-weight: 700; }
     .sub { font-size: 16px; color: #444; margin-bottom: 6px; }
     .sub strong { color: #1a1a2e; }
-    .next-label { font-size: 15px; color: #666; margin-bottom: 28px; }
+    .next-label { font-size: 15px; color: #666; margin-bottom: 24px; }
     .next-label strong { color: #2563eb; }
+
     .progress-bar-bg {
       background: #e5e7eb;
       border-radius: 999px;
       height: 8px;
       overflow: hidden;
-      margin-bottom: 16px;
+      margin-bottom: 12px;
+      position: relative;
     }
+    .progress-bar-bg.shimmer::after {
+      content: '';
+      position: absolute;
+      top: 0; bottom: 0;
+      left: -55%;
+      width: 55%;
+      background: linear-gradient(90deg, transparent 0%, #2563eb 40%, #60a5fa 60%, transparent 100%);
+      border-radius: 999px;
+      animation: shimmer-slide 1.6s ease-in-out infinite;
+    }
+    @keyframes shimmer-slide {
+      0%   { left: -55%; }
+      100% { left: 110%; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .progress-bar-bg.shimmer::after { animation: none; left: 20%; width: 60%; opacity: 0.6; }
+    }
+
     .progress-bar-fill {
       height: 100%;
       background: #2563eb;
       border-radius: 999px;
       width: 0%;
     }
-    .warning {
+
+    .status-msg {
       font-size: 13px;
-      color: #b45309;
-      background: #fef3c7;
-      border-radius: 8px;
-      padding: 8px 14px;
-      display: inline-block;
+      color: #6b7280;
+      min-height: 20px;
+      margin-bottom: 16px;
+      transition: opacity 0.35s ease;
     }
+    .status-msg.fade { opacity: 0; }
+
     .continue-btn {
       display: none;
       margin-top: 20px;
@@ -86,7 +108,7 @@
         .replace(/'/g, '&#39;');
     }
 
-    var params   = new URLSearchParams(window.location.search);
+    var params    = new URLSearchParams(window.location.search);
     var logo      = params.get('logo');
     var next      = params.get('next');
     var form      = params.get('form');
@@ -123,48 +145,60 @@
         '<h1>איזה כיף, השלמת בהצלחה חתימה על ' + signedLabel + '</h1>' +
         '<p class="sub">נותרו עוד <strong>' + remaining + '</strong> מסמכים להצטרף למשפחת יומנגס.</p>' +
         '<p class="next-label">קדימה, מיד מעבירים אותך למסמך <strong>' + formLabel + '</strong></p>' +
-        '<div class="progress-bar-bg"><div class="progress-bar-fill" id="bar"></div></div>' +
-        '<span class="warning" id="warning">⚠️ אל תסגור את הדף</span>' +
+        '<div class="progress-bar-bg shimmer" id="bar-bg"><div class="progress-bar-fill" id="bar"></div></div>' +
+        '<p class="status-msg" id="status-msg">מכין את הטופס הבא...</p>' +
         '<a class="continue-btn" id="continue-btn" href="#">המשך לחתימה הבאה ←</a>';
 
       var destination = decodeURIComponent(next);
-      var startTime = Date.now();
-      var navigated = false;
+      var startTime   = Date.now();
+      var navigated   = false;
+
+      var MESSAGES = [
+        'מכין את הטופס הבא...',
+        'מחבר בין המסמכים...',
+        'כמעט מוכן...',
+        'עוד שנייה ומעבירים אותך...',
+      ];
+      var msgIndex = 0;
+      var msgEl = document.getElementById('status-msg');
+
+      function rotateMessage() {
+        if (navigated || !msgEl) return;
+        msgEl.classList.add('fade');
+        setTimeout(function() {
+          if (navigated || !msgEl) return;
+          msgIndex = (msgIndex + 1) % MESSAGES.length;
+          msgEl.textContent = MESSAGES[msgIndex];
+          msgEl.classList.remove('fade');
+        }, 350);
+      }
+      var msgTimer = setInterval(rotateMessage, 2500);
 
       function navigateTo(url) {
         if (navigated) return;
         navigated = true;
-        window.location.href = url;
+        clearInterval(msgTimer);
+        if (msgEl) { msgEl.textContent = '✓ מוכן! מעביר אותך...'; msgEl.classList.remove('fade'); }
+        var barBg = document.getElementById('bar-bg');
+        var bar   = document.getElementById('bar');
+        if (barBg) barBg.classList.remove('shimmer');
+        if (bar)   { bar.style.transition = 'width 0.3s ease'; bar.style.width = '100%'; }
+        setTimeout(function() { window.location.href = url; }, 300);
       }
 
       function showButton(url) {
         var btn = document.getElementById('continue-btn');
-        var warn = document.getElementById('warning');
         if (btn) { btn.style.display = 'block'; btn.href = url; }
-        if (warn) warn.style.display = 'none';
       }
 
       if (candidateId) {
-        var MIN_WAIT_MS = 3000;
-        var MAX_WAIT_MS = 20000;
-        var POLL_INTERVAL_MS = 1500;
-        var BAR_DURATION_MS = 8000;
-
-        requestAnimationFrame(function() {
-          requestAnimationFrame(function() {
-            var bar = document.getElementById('bar');
-            if (bar) {
-              bar.style.transition = 'width ' + (BAR_DURATION_MS / 1000) + 's linear';
-              bar.style.width = '100%';
-            }
-          });
-        });
+        var MIN_WAIT_MS    = 3000;
+        var MAX_WAIT_MS    = 20000;
+        var POLL_INTERVAL  = 1500;
 
         function poll() {
           if (navigated) return;
-          var elapsed = Date.now() - startTime;
-
-          if (elapsed >= MAX_WAIT_MS) {
+          if (Date.now() - startTime >= MAX_WAIT_MS) {
             showButton(destination);
             navigateTo(destination);
             return;
@@ -174,44 +208,22 @@
             .then(function(r) { return r.json(); })
             .then(function(data) {
               if (navigated) return;
-              var elapsed2 = Date.now() - startTime;
-              if (data.ready && data.signatureLink && elapsed2 >= MIN_WAIT_MS) {
-                showButton(data.signatureLink);
-                navigateTo(data.signatureLink);
-              } else if (data.ready && data.signatureLink) {
-                var remaining2 = MIN_WAIT_MS - elapsed2;
+              if (data.ready && data.signatureLink) {
+                var wait = Math.max(0, MIN_WAIT_MS - (Date.now() - startTime));
                 setTimeout(function() {
-                  if (!navigated) {
-                    showButton(data.signatureLink);
-                    navigateTo(data.signatureLink);
-                  }
-                }, remaining2);
+                  if (!navigated) { showButton(data.signatureLink); navigateTo(data.signatureLink); }
+                }, wait);
               } else {
-                setTimeout(poll, POLL_INTERVAL_MS);
+                setTimeout(poll, POLL_INTERVAL);
               }
             })
-            .catch(function() {
-              setTimeout(poll, POLL_INTERVAL_MS);
-            });
+            .catch(function() { setTimeout(poll, POLL_INTERVAL); });
         }
 
         setTimeout(poll, 500);
-
-        setTimeout(function() {
-          if (!navigated) {
-            showButton(destination);
-            navigateTo(destination);
-          }
-        }, MAX_WAIT_MS);
+        setTimeout(function() { if (!navigated) { showButton(destination); navigateTo(destination); } }, MAX_WAIT_MS);
 
       } else {
-        requestAnimationFrame(function() {
-          requestAnimationFrame(function() {
-            var bar = document.getElementById('bar');
-            if (bar) bar.style.width = '100%';
-          });
-        });
-
         setTimeout(function() { navigateTo(destination); }, 8000);
         setTimeout(function() { showButton(destination); }, 8000);
       }
