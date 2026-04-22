@@ -43,7 +43,6 @@
       background: #2563eb;
       border-radius: 999px;
       width: 0%;
-      transition: width 8s linear;
     }
     .warning {
       font-size: 13px;
@@ -115,6 +114,8 @@
     } else {
       var signedLabel = signed ? esc(decodeURIComponent(signed)) : 'המסמך';
       var formLabel   = form   ? esc(decodeURIComponent(form))   : 'הטופס הבא';
+      var candidateId = params.get('candidateId');
+      var afterFormId = params.get('afterFormId');
 
       card.innerHTML =
         logoHtml +
@@ -127,24 +128,93 @@
         '<a class="continue-btn" id="continue-btn" href="#">המשך לחתימה הבאה ←</a>';
 
       var destination = decodeURIComponent(next);
+      var startTime = Date.now();
+      var navigated = false;
 
-      requestAnimationFrame(function() {
-        requestAnimationFrame(function() {
-          var bar = document.getElementById('bar');
-          if (bar) bar.style.width = '100%';
-        });
-      });
+      function navigateTo(url) {
+        if (navigated) return;
+        navigated = true;
+        window.location.href = url;
+      }
 
-      setTimeout(function() {
-        window.location.href = destination;
-      }, 8000);
-
-      setTimeout(function() {
+      function showButton(url) {
         var btn = document.getElementById('continue-btn');
         var warn = document.getElementById('warning');
-        if (btn) { btn.style.display = 'block'; btn.href = destination; }
+        if (btn) { btn.style.display = 'block'; btn.href = url; }
         if (warn) warn.style.display = 'none';
-      }, 8000);
+      }
+
+      if (candidateId) {
+        var MIN_WAIT_MS = 3000;
+        var MAX_WAIT_MS = 20000;
+        var POLL_INTERVAL_MS = 1500;
+        var BAR_DURATION_MS = 8000;
+
+        requestAnimationFrame(function() {
+          requestAnimationFrame(function() {
+            var bar = document.getElementById('bar');
+            if (bar) {
+              bar.style.transition = 'width ' + (BAR_DURATION_MS / 1000) + 's linear';
+              bar.style.width = '100%';
+            }
+          });
+        });
+
+        function poll() {
+          if (navigated) return;
+          var elapsed = Date.now() - startTime;
+
+          if (elapsed >= MAX_WAIT_MS) {
+            showButton(destination);
+            navigateTo(destination);
+            return;
+          }
+
+          fetch('https://biz-flow-erp-6829504d.base44.app/api/functions/getNextSigningLink?candidateId=' + encodeURIComponent(candidateId))
+            .then(function(r) { return r.json(); })
+            .then(function(data) {
+              if (navigated) return;
+              var elapsed2 = Date.now() - startTime;
+              if (data.ready && data.signatureLink && elapsed2 >= MIN_WAIT_MS) {
+                showButton(data.signatureLink);
+                navigateTo(data.signatureLink);
+              } else if (data.ready && data.signatureLink) {
+                var remaining2 = MIN_WAIT_MS - elapsed2;
+                setTimeout(function() {
+                  if (!navigated) {
+                    showButton(data.signatureLink);
+                    navigateTo(data.signatureLink);
+                  }
+                }, remaining2);
+              } else {
+                setTimeout(poll, POLL_INTERVAL_MS);
+              }
+            })
+            .catch(function() {
+              setTimeout(poll, POLL_INTERVAL_MS);
+            });
+        }
+
+        setTimeout(poll, 500);
+
+        setTimeout(function() {
+          if (!navigated) {
+            showButton(destination);
+            navigateTo(destination);
+          }
+        }, MAX_WAIT_MS);
+
+      } else {
+        requestAnimationFrame(function() {
+          requestAnimationFrame(function() {
+            var bar = document.getElementById('bar');
+            if (bar) bar.style.width = '100%';
+          });
+        });
+
+        setTimeout(function() { navigateTo(destination); }, 8000);
+        setTimeout(function() { showButton(destination); }, 8000);
+      }
     }
   </script>
 </body>
