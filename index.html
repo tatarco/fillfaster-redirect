@@ -170,7 +170,7 @@
             return;
           }
 
-          fetch('https://biz-flow-erp-6829504d.base44.app/api/functions/getNextSigningLink?candidateId=' + encodeURIComponent(candidateId))
+          fetch('https://biz-flow-erp-6829504d.base44.app/api/functions/getNextSigningLink?candidateId=' + encodeURIComponent(candidateId) + '&afterFormId=' + encodeURIComponent(afterFormId || ''))
             .then(function(r) { return r.json(); })
             .then(function(data) {
               if (navigated) return;
