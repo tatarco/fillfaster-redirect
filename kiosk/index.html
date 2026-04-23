@@ -1,0 +1,913 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>BizFlow Kiosk — Presentation</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #0a0a0f; color: #f1f5f9; overflow: hidden; height: 100vh; }
+
+  /* Slides */
+  .deck { width: 100vw; height: 100vh; position: relative; }
+  .slide { position: absolute; inset: 0; display: none; padding: 48px 64px; flex-direction: column; justify-content: center; background: #0a0a0f; }
+  .slide.active { display: flex; }
+
+  /* Navigation */
+  .nav { position: fixed; bottom: 32px; left: 50%; transform: translateX(-50%); display: flex; align-items: center; gap: 16px; z-index: 100; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); padding: 10px 20px; border-radius: 50px; backdrop-filter: blur(10px); }
+  .nav button { background: none; border: none; color: #94a3b8; cursor: pointer; font-size: 20px; padding: 4px 8px; border-radius: 6px; transition: all 0.15s; }
+  .nav button:hover { color: white; background: rgba(255,255,255,0.1); }
+  .nav .counter { color: #64748b; font-size: 13px; min-width: 48px; text-align: center; }
+  .progress { position: fixed; top: 0; left: 0; height: 2px; background: linear-gradient(90deg, #6366f1, #a855f7); transition: width 0.3s; z-index: 100; }
+
+  /* Typography */
+  .label { font-size: 11px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; color: #6366f1; margin-bottom: 12px; }
+  h1 { font-size: 56px; font-weight: 800; line-height: 1.1; }
+  h2 { font-size: 40px; font-weight: 700; line-height: 1.2; }
+  h3 { font-size: 24px; font-weight: 600; }
+  .subtitle { font-size: 20px; color: #94a3b8; margin-top: 12px; line-height: 1.5; }
+  .accent { color: #818cf8; }
+  .green { color: #34d399; }
+  .yellow { color: #fbbf24; }
+  .red { color: #f87171; }
+
+  /* Layout helpers */
+  .row { display: flex; gap: 24px; align-items: flex-start; }
+  .col { display: flex; flex-direction: column; gap: 16px; }
+  .flex-1 { flex: 1; }
+  .center { align-items: center; justify-content: center; text-align: center; }
+  .gap-8 { gap: 8px; }
+  .gap-32 { gap: 32px; }
+  .mt-16 { margin-top: 16px; }
+  .mt-32 { margin-top: 32px; }
+
+  /* Cards */
+  .card { background: #13131f; border: 1px solid #1e1e2e; border-radius: 16px; padding: 24px; }
+  .card.highlight { border-color: #4338ca; background: #13131f; }
+  .card-sm { background: #13131f; border: 1px solid #1e1e2e; border-radius: 10px; padding: 14px 18px; }
+  .badge { display: inline-block; padding: 4px 10px; border-radius: 20px; font-size: 11px; font-weight: 700; letter-spacing: 0.5px; }
+  .badge-blue { background: #1e3a5f; color: #60a5fa; }
+  .badge-green { background: #14532d; color: #4ade80; }
+  .badge-purple { background: #2e1065; color: #c084fc; }
+  .badge-yellow { background: #451a03; color: #fbbf24; }
+  .badge-gray { background: #1e1e2e; color: #94a3b8; }
+
+
+  /* Password gate */
+  #gate { position:fixed; inset:0; background:#0a0a0f; z-index:9999; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:24px; }
+  #gate h2 { font-size:28px; font-weight:700; color:#f1f5f9; }
+  #gate p { font-size:14px; color:#64748b; }
+  #gate input { background:#13131f; border:1px solid #1e1e2e; border-radius:10px; color:white; font-size:18px; padding:14px 20px; width:280px; text-align:center; outline:none; letter-spacing:4px; }
+  #gate input:focus { border-color:#6366f1; }
+  #gate button { background:#4338ca; color:white; border:none; border-radius:10px; padding:14px 40px; font-size:16px; font-weight:600; cursor:pointer; width:280px; }
+  #gate button:hover { background:#4f46e5; }
+  #gate .err { color:#f87171; font-size:13px; height:20px; }
+  #gate .logo { font-size:40px; margin-bottom:8px; }
+
+  /* Phone/screen mockup */
+  .screen-wrap { display: flex; flex-direction: column; align-items: center; gap: 12px; }
+  .screen-label { font-size: 11px; color: #64748b; font-weight: 600; letter-spacing: 1px; text-transform: uppercase; }
+  .kiosk-screen { width: 220px; background: #111827; border-radius: 16px; border: 2px solid #1e293b; overflow: hidden; box-shadow: 0 20px 60px rgba(0,0,0,0.6); }
+  .kiosk-screen.lg { width: 280px; }
+  .kiosk-header { background: #0f172a; padding: 10px 14px; border-bottom: 1px solid #1e293b; display: flex; justify-content: space-between; align-items: center; }
+  .kiosk-header .title { font-size: 11px; color: #94a3b8; font-weight: 600; }
+  .kiosk-body { padding: 20px 16px; min-height: 280px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; }
+  .kiosk-body.compact { min-height: 220px; padding: 16px 12px; }
+  .kiosk-icon { font-size: 44px; }
+  .kiosk-icon.sm { font-size: 28px; }
+  .kiosk-title { font-size: 13px; font-weight: 700; color: white; text-align: center; }
+  .kiosk-sub { font-size: 11px; color: #64748b; text-align: center; }
+
+  /* PIN dots */
+  .pin-dots { display: flex; gap: 8px; justify-content: center; margin: 8px 0; }
+  .pin-dot { width: 10px; height: 10px; border-radius: 50%; border: 2px solid #475569; }
+  .pin-dot.filled { background: white; border-color: white; }
+  .pin-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; width: 100%; }
+  .pin-btn { background: #1e293b; border: none; border-radius: 6px; color: white; font-size: 14px; font-weight: 700; padding: 8px; cursor: default; text-align: center; }
+  .pin-btn.empty { visibility: hidden; }
+
+  /* NFC tap animation */
+  .nfc-rings { position: relative; width: 60px; height: 60px; display: flex; align-items: center; justify-content: center; }
+  .nfc-ring { position: absolute; border-radius: 50%; border: 2px solid #4f46e5; opacity: 0; animation: pulse-ring 2s infinite; }
+  .nfc-ring:nth-child(1) { width: 30px; height: 30px; animation-delay: 0s; }
+  .nfc-ring:nth-child(2) { width: 45px; height: 45px; animation-delay: 0.4s; }
+  .nfc-ring:nth-child(3) { width: 60px; height: 60px; animation-delay: 0.8s; }
+  @keyframes pulse-ring { 0% { opacity: 0.8; transform: scale(0.8); } 100% { opacity: 0; transform: scale(1.1); } }
+
+  /* Tile grid */
+  .tile-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; width: 100%; padding: 0 4px; }
+  .tile { background: #1e293b; border-radius: 10px; padding: 14px 10px; display: flex; flex-direction: column; align-items: center; gap: 6px; }
+  .tile.future { opacity: 0.3; }
+  .tile-icon { font-size: 22px; }
+  .tile-name { font-size: 10px; font-weight: 600; color: #e2e8f0; text-align: center; }
+
+  /* Flow arrow */
+  .flow { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .flow-step { background: #13131f; border: 1px solid #1e1e2e; border-radius: 10px; padding: 10px 16px; font-size: 13px; color: #e2e8f0; white-space: nowrap; }
+  .flow-arrow { color: #4f46e5; font-size: 16px; }
+
+  /* Hardware diagram */
+  .hw-item { display: flex; align-items: center; gap: 12px; background: #13131f; border: 1px solid #1e1e2e; border-radius: 10px; padding: 12px 16px; }
+  .hw-icon { font-size: 28px; width: 40px; text-align: center; }
+  .hw-name { font-size: 14px; font-weight: 600; color: white; }
+  .hw-spec { font-size: 12px; color: #64748b; }
+  .hw-price { font-size: 13px; font-weight: 700; color: #34d399; margin-left: auto; }
+
+  /* Step list */
+  .step-list { display: flex; flex-direction: column; gap: 10px; }
+  .step { display: flex; gap: 12px; align-items: flex-start; }
+  .step-num { width: 28px; height: 28px; border-radius: 50%; background: #4338ca; color: white; font-size: 12px; font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0; margin-top: 1px; }
+  .step-num.green { background: #15803d; }
+  .step-num.purple { background: #7e22ce; }
+  .step-text { font-size: 14px; color: #cbd5e1; line-height: 1.5; }
+  .step-text strong { color: white; }
+
+  /* Divider */
+  .divider { width: 100%; height: 1px; background: #1e1e2e; margin: 4px 0; }
+
+  /* Success / error states */
+  .success-state { background: rgba(21, 128, 61, 0.15); border: 1px solid #15803d; border-radius: 10px; padding: 16px; text-align: center; width: 100%; }
+  .error-state { background: rgba(185, 28, 28, 0.15); border: 1px solid #b91c1c; border-radius: 10px; padding: 16px; text-align: center; width: 100%; }
+
+  /* Roadmap */
+  .roadmap-item { display: flex; gap: 16px; align-items: center; }
+  .roadmap-dot { width: 12px; height: 12px; border-radius: 50%; flex-shrink: 0; }
+  .roadmap-line { display: flex; flex-direction: column; gap: 4px; }
+
+  /* Title slide gradient */
+  .title-glow { position: absolute; width: 600px; height: 600px; background: radial-gradient(circle, rgba(99,102,241,0.15) 0%, transparent 70%); top: -100px; right: -100px; pointer-events: none; }
+
+  /* Punch list */
+  .punch-row { display: flex; justify-content: space-between; align-items: center; background: #1e293b; border-radius: 6px; padding: 6px 10px; margin-bottom: 4px; font-size: 10px; }
+</style>
+</head>
+<body>
+
+
+<div id="gate">
+  <div class="logo">🏭</div>
+  <h2>BizFlow Kiosk</h2>
+  <p>This presentation is protected. Enter the password to continue.</p>
+  <input type="password" id="pwd" placeholder="••••••••" onkeydown="if(event.key==='Enter')checkPwd()" autofocus />
+  <div class="err" id="err"></div>
+  <button onclick="checkPwd()">View Presentation →</button>
+</div>
+
+<div class="progress" id="progress"></div>
+
+<div class="deck">
+
+  <!-- SLIDE 1: Title -->
+  <div class="slide active" id="s1">
+    <div class="title-glow"></div>
+    <div class="label">BizFlow ERP — Internal</div>
+    <h1>Hardened<br/><span class="accent">Attendance Kiosk</span></h1>
+    <p class="subtitle">A custom-built, biometric operational terminal<br/>for every branch — replacing ZKTeco with something that actually works.</p>
+    <div class="row mt-32" style="gap:12px">
+      <span class="badge badge-blue">Fingerprint</span>
+      <span class="badge badge-purple">NFC Wristband</span>
+      <span class="badge badge-green">Attendance</span>
+      <span class="badge badge-yellow">Extensible</span>
+    </div>
+  </div>
+
+  <!-- SLIDE 2: The Problem -->
+  <div class="slide" id="s2">
+    <div class="label">Context</div>
+    <h2>Why we're building this</h2>
+    <div class="row mt-32 gap-32">
+      <div class="col flex-1">
+        <div class="card" style="border-color:#7f1d1d">
+          <div style="font-size:28px;margin-bottom:12px">❌</div>
+          <h3 style="color:#fca5a5;margin-bottom:8px">ZKTeco — abandoned</h3>
+          <div class="step-list">
+            <div class="step"><div class="step-num" style="background:#7f1d1d">1</div><div class="step-text">ADMS callback never reached our server</div></div>
+            <div class="step"><div class="step-num" style="background:#7f1d1d">2</div><div class="step-text">Full day wasted on configuration</div></div>
+            <div class="step"><div class="step-num" style="background:#7f1d1d">3</div><div class="step-text">Black-box firmware — no control, no extensibility</div></div>
+            <div class="step"><div class="step-num" style="background:#7f1d1d">4</div><div class="step-text">Fingerprint fails in kitchen — wet/greasy hands</div></div>
+          </div>
+        </div>
+      </div>
+      <div class="col flex-1">
+        <div class="card highlight">
+          <div style="font-size:28px;margin-bottom:12px">✅</div>
+          <h3 style="color:#a5b4fc;margin-bottom:8px">Our kiosk</h3>
+          <div class="step-list">
+            <div class="step"><div class="step-num">1</div><div class="step-text">We own the hardware, software, and data</div></div>
+            <div class="step"><div class="step-num">2</div><div class="step-text">NFC wristbands for kitchen — works with gloves</div></div>
+            <div class="step"><div class="step-num">3</div><div class="step-text">Built on Base44 — same platform as the rest of the ERP</div></div>
+            <div class="step"><div class="step-num">4</div><div class="step-text">Module shell — add inventory, requests, checklists later</div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SLIDE 3: Hardware -->
+  <div class="slide" id="s3">
+    <div class="label">Hardware</div>
+    <h2>What's in each station</h2>
+    <div class="row mt-32" style="align-items: flex-start; gap: 40px">
+      <div class="col flex-1" style="gap:10px">
+        <div class="hw-item"><div class="hw-icon">🖥️</div><div><div class="hw-name">Beelink S12 Pro Mini-PC</div><div class="hw-spec">Intel N100 · 16GB · Win11 Pro · silent</div></div><div class="hw-price">~$180</div></div>
+        <div class="hw-item"><div class="hw-icon">🖱️</div><div><div class="hw-name">Industrial Touchscreen 15"</div><div class="hw-spec">Lilliput · IP65 front · HDMI + USB touch</div></div><div class="hw-price">~$220</div></div>
+        <div class="hw-item"><div class="hw-icon">🖐️</div><div><div class="hw-name">Suprema BioMini Plus 2</div><div class="hw-spec">USB fingerprint · 500dpi · liveness detection</div></div><div class="hw-price">~$130</div></div>
+        <div class="hw-item"><div class="hw-icon">📡</div><div><div class="hw-name">ACS ACR122U NFC Reader</div><div class="hw-spec">USB · ISO 14443 A/B · plug & play</div></div><div class="hw-price">~$30</div></div>
+        <div class="hw-item"><div class="hw-icon">🔢</div><div><div class="hw-name">IP67 Stainless Numpad</div><div class="hw-spec">USB · waterproof · food-safe</div></div><div class="hw-price">~$50</div></div>
+        <div class="hw-item"><div class="hw-icon">🔌</div><div><div class="hw-name">Powered USB Hub</div><div class="hw-spec">7-port · Anker · external PSU</div></div><div class="hw-price">~$20</div></div>
+        <div class="divider"></div>
+        <div class="hw-item" style="border-color:#4338ca"><div class="hw-icon" style="font-size:20px">💰</div><div><div class="hw-name" style="color:#818cf8">Total per station</div><div class="hw-spec">Excl. nirosta enclosure + mounting</div></div><div class="hw-price" style="font-size:16px">~$630</div></div>
+      </div>
+      <div class="col" style="gap:12px;min-width:220px">
+        <div class="card" style="padding:20px;text-align:center">
+          <div style="font-size:48px;margin-bottom:12px">🏭</div>
+          <div style="font-size:13px;font-weight:600;color:white;margin-bottom:6px">Nirosta Enclosure</div>
+          <div style="font-size:12px;color:#64748b">Custom stainless steel casing, wall-mounted, IP-rated for kitchen environment</div>
+          <div style="margin-top:12px;font-size:11px;color:#6366f1;font-weight:600">Scale port reserved for future</div>
+        </div>
+        <div class="card" style="padding:16px">
+          <div style="font-size:12px;font-weight:700;color:#fbbf24;margin-bottom:8px">📿 NFC Wristbands</div>
+          <div style="font-size:12px;color:#94a3b8">NTAG215 silicone, food-safe, waterproof. Bulk from Alibaba.</div>
+          <div style="font-size:14px;font-weight:700;color:#34d399;margin-top:8px">~$4 each (qty 200+)</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SLIDE 4: Auth Split -->
+  <div class="slide" id="s4">
+    <div class="label">Authentication Design</div>
+    <h2>Two paths, one kiosk</h2>
+    <p class="subtitle">The method is chosen by the employee — the kiosk supports both simultaneously.</p>
+    <div class="row mt-32 gap-32">
+      <div class="card flex-1" style="border-color:#4338ca;padding:28px">
+        <div style="font-size:40px;margin-bottom:14px">🖐️</div>
+        <h3 style="color:#a5b4fc;margin-bottom:8px">Fingerprint</h3>
+        <div class="badge badge-blue" style="margin-bottom:16px">Office · Managers · Front of house</div>
+        <div class="step-list">
+          <div class="step"><div class="step-num">1</div><div class="step-text">Place finger on Suprema reader</div></div>
+          <div class="step"><div class="step-num">2</div><div class="step-text">On-device match — &lt;1 second</div></div>
+          <div class="step"><div class="step-num">3</div><div class="step-text">Employee identified → home screen</div></div>
+        </div>
+        <div class="card-sm mt-16" style="border-color:#1e3a5f">
+          <div style="font-size:12px;color:#60a5fa">🔒 Biometric stays on device. Base44 stores only a template ID — never the fingerprint itself.</div>
+        </div>
+      </div>
+      <div class="card flex-1" style="border-color:#7e22ce;padding:28px">
+        <div style="font-size:40px;margin-bottom:14px">📡 + 🔢</div>
+        <h3 style="color:#c084fc;margin-bottom:8px">NFC Wristband + PIN</h3>
+        <div class="badge badge-purple" style="margin-bottom:16px">Kitchen · Cooks · Gloved staff</div>
+        <div class="step-list">
+          <div class="step"><div class="step-num purple">1</div><div class="step-text">Tap silicone wristband on reader</div></div>
+          <div class="step"><div class="step-num purple">2</div><div class="step-text">Enter 4-digit PIN on numpad</div></div>
+          <div class="step"><div class="step-num purple">3</div><div class="step-text">Employee identified → home screen</div></div>
+        </div>
+        <div class="card-sm mt-16" style="border-color:#2e1065">
+          <div style="font-size:12px;color:#c084fc">Works with wet hands, gloves, burn bandages. NFC UID is not biometric — zero privacy liability.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SLIDE 5: Employee Flow Overview -->
+  <div class="slide" id="s5">
+    <div class="label">Employee Experience</div>
+    <h2>The complete employee flow</h2>
+    <p class="subtitle">From walking up to the kiosk → confirmed punch → back to work. Under 15 seconds.</p>
+    <div class="col mt-32" style="gap:24px">
+      <div>
+        <div class="badge badge-blue" style="margin-bottom:12px">Path A — Fingerprint</div>
+        <div class="flow">
+          <div class="flow-step">🖐️ Place finger</div>
+          <div class="flow-arrow">→</div>
+          <div class="flow-step">⚡ &lt;1s match</div>
+          <div class="flow-arrow">→</div>
+          <div class="flow-step">🏠 Home screen</div>
+          <div class="flow-arrow">→</div>
+          <div class="flow-step">🟢 Tap Clock In</div>
+          <div class="flow-arrow">→</div>
+          <div class="flow-step">✅ Confirmed</div>
+          <div class="flow-arrow">→</div>
+          <div class="flow-step">↩ Auto-return</div>
+        </div>
+      </div>
+      <div>
+        <div class="badge badge-purple" style="margin-bottom:12px">Path B — NFC + PIN</div>
+        <div class="flow">
+          <div class="flow-step">📡 Tap wristband</div>
+          <div class="flow-arrow">→</div>
+          <div class="flow-step">🔢 Enter PIN</div>
+          <div class="flow-arrow">→</div>
+          <div class="flow-step">🏠 Home screen</div>
+          <div class="flow-arrow">→</div>
+          <div class="flow-step">🟢 Tap Clock In</div>
+          <div class="flow-arrow">→</div>
+          <div class="flow-step">✅ Confirmed</div>
+          <div class="flow-arrow">→</div>
+          <div class="flow-step">↩ Auto-return</div>
+        </div>
+      </div>
+      <div style="background:#13131f;border:1px solid #1e1e2e;border-radius:10px;padding:16px;margin-top:8px">
+        <div style="display:flex;gap:32px">
+          <div style="font-size:13px;color:#94a3b8">⏱ Total time: <strong style="color:white">~8–15 seconds</strong></div>
+          <div style="font-size:13px;color:#94a3b8">🔒 Wrong PIN x3: <strong style="color:#f87171">60s lockout</strong></div>
+          <div style="font-size:13px;color:#94a3b8">⏳ No activity: <strong style="color:#fbbf24">60s auto-logout</strong></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SLIDE 6: Auth Screen Mocks -->
+  <div class="slide" id="s6">
+    <div class="label">Screen Mockups — Auth</div>
+    <h2>Step 1 — Identification</h2>
+    <div class="row mt-32" style="gap:32px;align-items:flex-start;justify-content:center">
+
+      <div class="screen-wrap">
+        <div class="screen-label">Fingerprint mode (default)</div>
+        <div class="kiosk-screen lg">
+          <div class="kiosk-header">
+            <span class="title">BizFlow</span>
+            <div style="display:flex;gap:6px">
+              <span style="background:#4338ca;color:white;font-size:9px;padding:2px 8px;border-radius:20px;font-weight:600">טביעת אצבע</span>
+              <span style="color:#475569;font-size:9px;padding:2px 8px;border-radius:20px;">צמיד + קוד</span>
+            </div>
+          </div>
+          <div class="kiosk-body">
+            <div style="position:relative;width:80px;height:80px;display:flex;align-items:center;justify-content:center">
+              <div style="position:absolute;inset:0;border-radius:50%;border:2px solid #4338ca;opacity:0.6;animation:pulse-ring 2s infinite"></div>
+              <div style="position:absolute;inset:8px;border-radius:50%;border:2px solid #4338ca;opacity:0.4;animation:pulse-ring 2s infinite 0.4s"></div>
+              <span style="font-size:32px">🖐️</span>
+            </div>
+            <div class="kiosk-title" dir="rtl">הנח אצבע על הסורק</div>
+            <div class="kiosk-sub" dir="rtl">ממתין לסריקה...</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="screen-wrap">
+        <div class="screen-label">NFC mode</div>
+        <div class="kiosk-screen lg">
+          <div class="kiosk-header">
+            <span class="title">BizFlow</span>
+            <div style="display:flex;gap:6px">
+              <span style="color:#475569;font-size:9px;padding:2px 8px;border-radius:20px;">טביעת אצבע</span>
+              <span style="background:#4338ca;color:white;font-size:9px;padding:2px 8px;border-radius:20px;font-weight:600">צמיד + קוד</span>
+            </div>
+          </div>
+          <div class="kiosk-body">
+            <div class="nfc-rings">
+              <div class="nfc-ring"></div>
+              <div class="nfc-ring"></div>
+              <div class="nfc-ring"></div>
+              <span style="font-size:24px;position:relative;z-index:1">📡</span>
+            </div>
+            <div class="kiosk-title" dir="rtl">הצמד את הצמיד לקורא</div>
+            <div class="kiosk-sub" dir="rtl">ממתין לצמיד...</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="screen-wrap">
+        <div class="screen-label">PIN entry (after tap)</div>
+        <div class="kiosk-screen lg">
+          <div class="kiosk-header">
+            <span class="title">BizFlow</span>
+            <span style="font-size:10px;color:#94a3b8">שלום, דני כהן 👋</span>
+          </div>
+          <div class="kiosk-body compact">
+            <div class="kiosk-sub" dir="rtl">הזן קוד PIN</div>
+            <div class="pin-dots">
+              <div class="pin-dot filled"></div>
+              <div class="pin-dot filled"></div>
+              <div class="pin-dot"></div>
+              <div class="pin-dot"></div>
+            </div>
+            <div class="pin-grid" style="margin-top:6px">
+              <div class="pin-btn">1</div><div class="pin-btn">2</div><div class="pin-btn">3</div>
+              <div class="pin-btn">4</div><div class="pin-btn">5</div><div class="pin-btn">6</div>
+              <div class="pin-btn">7</div><div class="pin-btn">8</div><div class="pin-btn">9</div>
+              <div class="pin-btn empty"></div><div class="pin-btn">0</div><div class="pin-btn">⌫</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- SLIDE 7: Home + Clock In screens -->
+  <div class="slide" id="s7">
+    <div class="label">Screen Mockups — Post-Auth</div>
+    <h2>Step 2 — Home screen & Clock In/Out</h2>
+    <div class="row mt-32" style="gap:32px;align-items:flex-start;justify-content:center">
+
+      <div class="screen-wrap">
+        <div class="screen-label">Home screen (employee)</div>
+        <div class="kiosk-screen lg">
+          <div class="kiosk-header">
+            <div>
+              <div style="font-size:12px;font-weight:700;color:white">דני כהן</div>
+              <div style="font-size:9px;color:#64748b">טבח • סניף יהוד</div>
+            </div>
+            <div style="font-size:9px;color:#475569">יציאה</div>
+          </div>
+          <div class="kiosk-body" style="justify-content:flex-start;padding-top:16px">
+            <div class="tile-grid">
+              <div class="tile">
+                <div class="tile-icon">🕐</div>
+                <div class="tile-name">נוכחות</div>
+              </div>
+              <div class="tile future">
+                <div class="tile-icon">📦</div>
+                <div class="tile-name">מלאי</div>
+              </div>
+              <div class="tile future">
+                <div class="tile-icon">📝</div>
+                <div class="tile-name">בקשות</div>
+              </div>
+              <div class="tile future">
+                <div class="tile-icon">✅</div>
+                <div class="tile-name">רשימות</div>
+              </div>
+            </div>
+            <div style="font-size:9px;color:#374151;margin-top:8px" dir="rtl">מודולים עתידיים מוצגים בצבע אפור</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="screen-wrap">
+        <div class="screen-label">Attendance module</div>
+        <div class="kiosk-screen lg">
+          <div class="kiosk-header">
+            <div style="font-size:9px;color:#94a3b8">← חזור</div>
+            <div style="font-size:11px;color:white;font-weight:600" dir="rtl">נוכחות</div>
+            <div style="font-size:9px;color:#64748b">10:34</div>
+          </div>
+          <div class="kiosk-body" style="gap:8px">
+            <div style="font-size:12px;color:#94a3b8;margin-bottom:4px" dir="rtl">בחר פעולה</div>
+            <div style="display:flex;gap:10px;width:100%">
+              <div style="flex:1;background:#14532d;border-radius:10px;padding:16px 8px;text-align:center;cursor:default">
+                <div style="font-size:22px">🟢</div>
+                <div style="font-size:12px;font-weight:700;color:#4ade80;margin-top:4px" dir="rtl">כניסה</div>
+              </div>
+              <div style="flex:1;background:#7f1d1d;border-radius:10px;padding:16px 8px;text-align:center;cursor:default">
+                <div style="font-size:22px">🔴</div>
+                <div style="font-size:12px;font-weight:700;color:#f87171;margin-top:4px" dir="rtl">יציאה</div>
+              </div>
+            </div>
+            <div style="font-size:10px;color:#475569;margin-top:4px" dir="rtl">משמרת: 08:00 – 16:00</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="screen-wrap">
+        <div class="screen-label">Success confirmation</div>
+        <div class="kiosk-screen lg">
+          <div class="kiosk-header">
+            <span class="title">BizFlow</span>
+          </div>
+          <div class="kiosk-body">
+            <div style="font-size:52px;animation:pulse-ring 1s">✅</div>
+            <div class="kiosk-title" dir="rtl">כניסה נרשמה!</div>
+            <div style="font-size:20px;font-weight:700;color:#4ade80;margin-top:4px">10:34</div>
+            <div class="kiosk-sub" dir="rtl">חוזר למסך הראשי...</div>
+            <div style="width:80%;background:#1e293b;border-radius:4px;height:3px;margin-top:8px;overflow:hidden">
+              <div style="width:60%;height:100%;background:#4ade80;border-radius:4px"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- SLIDE 8: Manager Flow Overview -->
+  <div class="slide" id="s8">
+    <div class="label">Manager Experience</div>
+    <h2>The manager flow</h2>
+    <p class="subtitle">Managers authenticate the same way (fingerprint or NFC+PIN) but their role unlocks an admin tile with two extra screens.</p>
+    <div class="row mt-32 gap-32">
+      <div class="col flex-1">
+        <div class="label" style="font-size:10px">Manager authentication</div>
+        <div class="flow" style="flex-direction:column;align-items:flex-start;gap:8px">
+          <div class="flow-step" style="width:100%">🖐️ Manager authenticates (fingerprint or NFC+PIN)</div>
+          <div class="flow-arrow" style="margin-left:20px">↓</div>
+          <div class="flow-step" style="width:100%;border-color:#4338ca">🏠 Home screen — <strong style="color:#818cf8">⚙️ ניהול tile visible</strong></div>
+          <div class="flow-arrow" style="margin-left:20px">↓ tap ניהול</div>
+          <div class="flow-step" style="width:100%">📋 Admin module home — 2 tiles</div>
+        </div>
+        <div class="divider mt-16"></div>
+        <div class="label mt-16" style="font-size:10px">Admin module tiles</div>
+        <div class="row" style="gap:10px;margin-top:8px">
+          <div class="card-sm flex-1" style="text-align:center">
+            <div style="font-size:24px;margin-bottom:6px">➕</div>
+            <div style="font-size:12px;font-weight:600;color:white" dir="rtl">רישום עובד</div>
+            <div style="font-size:11px;color:#64748b;margin-top:4px" dir="rtl">הוסף NFC או טביעת אצבע</div>
+          </div>
+          <div class="card-sm flex-1" style="text-align:center">
+            <div style="font-size:24px;margin-bottom:6px">📋</div>
+            <div style="font-size:12px;font-weight:600;color:white" dir="rtl">נוכחות היום</div>
+            <div style="font-size:11px;color:#64748b;margin-top:4px" dir="rtl">כל הכניסות והיציאות</div>
+          </div>
+        </div>
+      </div>
+      <div class="col flex-1">
+        <div class="card" style="padding:20px">
+          <h3 style="margin-bottom:14px;color:#c084fc">Enrollment — one-time per employee</h3>
+          <div class="step-list">
+            <div class="step"><div class="step-num purple">1</div><div class="step-text">Manager logs in → opens <strong>רישום עובד</strong></div></div>
+            <div class="step"><div class="step-num purple">2</div><div class="step-text">Selects employee from list</div></div>
+            <div class="step"><div class="step-num purple">3</div><div class="step-text">Chooses method: <strong>NFC wristband</strong> or <strong>fingerprint</strong></div></div>
+            <div class="step"><div class="step-num purple">4</div><div class="step-text"><strong>NFC path:</strong> employee taps wristband → manager sets 4-digit PIN</div></div>
+            <div class="step"><div class="step-num purple">5</div><div class="step-text"><strong>Fingerprint path:</strong> employee places finger → template saved locally</div></div>
+            <div class="step"><div class="step-num purple">6</div><div class="step-text">Done — employee can now clock in/out from this kiosk</div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SLIDE 9: Manager Screen Mocks -->
+  <div class="slide" id="s9">
+    <div class="label">Screen Mockups — Manager</div>
+    <h2>Manager screens</h2>
+    <div class="row mt-32" style="gap:28px;align-items:flex-start;justify-content:center">
+
+      <div class="screen-wrap">
+        <div class="screen-label">Home (manager role)</div>
+        <div class="kiosk-screen lg">
+          <div class="kiosk-header">
+            <div>
+              <div style="font-size:12px;font-weight:700;color:white">מנהל ראשי</div>
+              <div style="font-size:9px;color:#64748b">מנהל • סניף יהוד</div>
+            </div>
+          </div>
+          <div class="kiosk-body" style="justify-content:flex-start;padding-top:16px">
+            <div class="tile-grid">
+              <div class="tile">
+                <div class="tile-icon">🕐</div>
+                <div class="tile-name">נוכחות</div>
+              </div>
+              <div class="tile" style="border:1px solid #4338ca">
+                <div class="tile-icon">⚙️</div>
+                <div class="tile-name" style="color:#a5b4fc">ניהול</div>
+              </div>
+              <div class="tile future"><div class="tile-icon">📦</div><div class="tile-name">מלאי</div></div>
+              <div class="tile future"><div class="tile-icon">📝</div><div class="tile-name">בקשות</div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="screen-wrap">
+        <div class="screen-label">Enrollment — select method</div>
+        <div class="kiosk-screen lg">
+          <div class="kiosk-header">
+            <div style="font-size:9px;color:#94a3b8">← חזור</div>
+            <div style="font-size:11px;color:white" dir="rtl">רישום: דני כהן</div>
+          </div>
+          <div class="kiosk-body" style="gap:10px">
+            <div style="font-size:11px;color:#94a3b8" dir="rtl">בחר שיטת זיהוי</div>
+            <div style="width:100%;background:#1a2744;border:1px solid #1e3a5f;border-radius:10px;padding:14px;text-align:center;cursor:default">
+              <div style="font-size:22px">📡</div>
+              <div style="font-size:11px;font-weight:600;color:#60a5fa;margin-top:4px" dir="rtl">צמיד NFC</div>
+            </div>
+            <div style="width:100%;background:#1a1040;border:1px solid #2e1065;border-radius:10px;padding:14px;text-align:center;cursor:default">
+              <div style="font-size:22px">🖐️</div>
+              <div style="font-size:11px;font-weight:600;color:#c084fc;margin-top:4px" dir="rtl">טביעת אצבע</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="screen-wrap">
+        <div class="screen-label">Today's punches</div>
+        <div class="kiosk-screen lg">
+          <div class="kiosk-header">
+            <div style="font-size:9px;color:#94a3b8">← חזור</div>
+            <div style="font-size:11px;color:white" dir="rtl">נוכחות היום</div>
+          </div>
+          <div class="kiosk-body" style="justify-content:flex-start;padding-top:12px;gap:4px">
+            <div class="punch-row" dir="rtl">
+              <span style="color:white;font-weight:600">דני כהן</span>
+              <span style="color:#4ade80;font-weight:600">🟢 כניסה</span>
+              <span style="color:#64748b">08:02</span>
+            </div>
+            <div class="punch-row" dir="rtl">
+              <span style="color:white;font-weight:600">מיכל לוי</span>
+              <span style="color:#4ade80;font-weight:600">🟢 כניסה</span>
+              <span style="color:#64748b">08:15</span>
+            </div>
+            <div class="punch-row" dir="rtl">
+              <span style="color:white;font-weight:600">יוסי ביטון</span>
+              <span style="color:#4ade80;font-weight:600">🟢 כניסה</span>
+              <span style="color:#64748b">08:31</span>
+            </div>
+            <div class="punch-row" dir="rtl">
+              <span style="color:white;font-weight:600">דני כהן</span>
+              <span style="color:#f87171;font-weight:600">🔴 יציאה</span>
+              <span style="color:#64748b">13:00</span>
+            </div>
+            <div class="punch-row" dir="rtl">
+              <span style="color:white;font-weight:600">שרה אבו</span>
+              <span style="color:#4ade80;font-weight:600">🟢 כניסה</span>
+              <span style="color:#64748b">14:02</span>
+            </div>
+            <div style="font-size:9px;color:#374151;text-align:center;margin-top:6px" dir="rtl">5 רשומות היום</div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- SLIDE 10: Architecture -->
+  <div class="slide" id="s10">
+    <div class="label">Technical Architecture</div>
+    <h2>How it's built</h2>
+    <div class="row mt-32" style="gap:40px;align-items:stretch">
+      <div class="col flex-1" style="gap:10px">
+        <div class="card-sm" style="border-color:#4338ca">
+          <div style="font-size:11px;font-weight:700;color:#818cf8;margin-bottom:6px">🖥️ Windows Mini-PC (local)</div>
+          <div style="font-size:12px;color:#94a3b8"><strong style="color:white">Electron App</strong> — runs your existing React/Vite UI fullscreen. No browser bar, no taskbar, boots straight to kiosk.</div>
+          <div style="margin-top:8px;display:flex;gap:6px;flex-wrap:wrap">
+            <span class="badge badge-blue" style="font-size:10px">React 18</span>
+            <span class="badge badge-blue" style="font-size:10px">Tailwind</span>
+            <span class="badge badge-blue" style="font-size:10px">Electron 33</span>
+          </div>
+        </div>
+        <div class="card-sm">
+          <div style="font-size:11px;font-weight:700;color:#fbbf24;margin-bottom:6px">🔌 Hardware Abstraction Layer</div>
+          <div style="font-size:12px;color:#94a3b8">Electron main process talks to USB devices, sends events to UI over IPC. Fingerprint template match happens <strong style="color:white">on-device only</strong>.</div>
+        </div>
+        <div style="text-align:center;font-size:20px;color:#4338ca">↕ HTTPS</div>
+        <div class="card-sm" style="border-color:#15803d">
+          <div style="font-size:11px;font-weight:700;color:#4ade80;margin-bottom:6px">☁️ Base44 Backend</div>
+          <div style="font-size:12px;color:#94a3b8">7 new functions: <code style="color:#a5b4fc">verifyEmployee</code>, <code style="color:#a5b4fc">clockIn</code>, <code style="color:#a5b4fc">clockOut</code>, <code style="color:#a5b4fc">verifyPin</code>, <code style="color:#a5b4fc">enrollNfc</code>, <code style="color:#a5b4fc">enrollFingerprint</code>, <code style="color:#a5b4fc">getTodayPunches</code></div>
+        </div>
+      </div>
+      <div class="col flex-1" style="gap:10px">
+        <div class="card-sm">
+          <div style="font-size:11px;font-weight:700;color:#c084fc;margin-bottom:8px">🏗️ Mac Dev → Windows Prod</div>
+          <div class="step-list">
+            <div class="step"><div class="step-num purple" style="width:22px;height:22px;font-size:10px">1</div><div class="step-text" style="font-size:12px">Develop on Mac — NFC works natively, fingerprint uses a dev mock (employee picker)</div></div>
+            <div class="step"><div class="step-num purple" style="width:22px;height:22px;font-size:10px">2</div><div class="step-text" style="font-size:12px">Push to GitHub → CI auto-builds Windows <code>.exe</code></div></div>
+            <div class="step"><div class="step-num purple" style="width:22px;height:22px;font-size:10px">3</div><div class="step-text" style="font-size:12px">Run installer once per machine. Auto-updates on every push from that point.</div></div>
+          </div>
+        </div>
+        <div class="card-sm">
+          <div style="font-size:11px;font-weight:700;color:#fbbf24;margin-bottom:6px">🔒 Biometric Privacy</div>
+          <div style="font-size:12px;color:#94a3b8;line-height:1.6">
+            Fingerprint templates stored <strong style="color:white">encrypted, locally</strong> on the mini-PC only.<br/>
+            Base44 stores a <strong style="color:white">template ID string</strong> — never biometric data.<br/>
+            NFC UIDs are not biometric — no liability.<br/>
+            PINs stored as <strong style="color:white">bcrypt hash</strong> server-side.
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SLIDE 11: Deployment -->
+  <div class="slide" id="s11">
+    <div class="label">Deployment</div>
+    <h2>Getting it onto the wall</h2>
+    <div class="row mt-32 gap-40">
+      <div class="col flex-1">
+        <h3 style="margin-bottom:16px;color:#94a3b8">One-time machine setup</h3>
+        <div class="step-list">
+          <div class="step"><div class="step-num green">1</div><div class="step-text">Buy hardware, assemble in nirosta casing</div></div>
+          <div class="step"><div class="step-num green">2</div><div class="step-text">Download <code>.exe</code> installer from GitHub Releases</div></div>
+          <div class="step"><div class="step-num green">3</div><div class="step-text">Install ACR122U NFC driver (ACS website, 5 min)</div></div>
+          <div class="step"><div class="step-num green">4</div><div class="step-text">Run PowerShell setup script — configures auto-start + kiosk lockdown</div></div>
+          <div class="step"><div class="step-num green">5</div><div class="step-text">Reboot — machine boots straight into BizFlow Kiosk</div></div>
+          <div class="step"><div class="step-num green">6</div><div class="step-text">Manager enrolls employees on the kiosk</div></div>
+        </div>
+      </div>
+      <div class="col flex-1">
+        <h3 style="margin-bottom:16px;color:#94a3b8">Updates — zero-touch</h3>
+        <div class="card" style="padding:20px">
+          <div class="flow" style="flex-direction:column;align-items:flex-start;gap:10px">
+            <div class="flow-step" style="width:100%">You push code to GitHub main branch</div>
+            <div class="flow-arrow" style="margin-left:16px">↓</div>
+            <div class="flow-step" style="width:100%">GitHub Actions builds new <code>.exe</code></div>
+            <div class="flow-arrow" style="margin-left:16px">↓</div>
+            <div class="flow-step" style="width:100%">Kiosk auto-downloads update in background</div>
+            <div class="flow-arrow" style="margin-left:16px">↓</div>
+            <div class="flow-step" style="width:100%">Applies on next restart — <strong>zero manual steps</strong></div>
+          </div>
+        </div>
+        <div class="card-sm mt-16" style="border-color:#15803d">
+          <div style="font-size:12px;color:#4ade80">✓ After initial setup, every branch update is automatic</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SLIDE 12: Pricing -->
+  <div class="slide" id="s12">
+    <div class="label">Investment</div>
+    <h2>Cost breakdown</h2>
+    <div class="row mt-32 gap-32">
+      <div class="col flex-1" style="gap:8px">
+        <h3 style="margin-bottom:8px;color:#94a3b8">Hardware — per station</h3>
+        <div class="hw-item"><div class="hw-icon" style="font-size:18px">🖥️</div><div><div class="hw-name" style="font-size:13px">Beelink S12 Pro</div></div><div class="hw-price">$180</div></div>
+        <div class="hw-item"><div class="hw-icon" style="font-size:18px">🖱️</div><div><div class="hw-name" style="font-size:13px">Industrial touchscreen 15"</div></div><div class="hw-price">$220</div></div>
+        <div class="hw-item"><div class="hw-icon" style="font-size:18px">🖐️</div><div><div class="hw-name" style="font-size:13px">Suprema BioMini Plus 2</div></div><div class="hw-price">$130</div></div>
+        <div class="hw-item"><div class="hw-icon" style="font-size:18px">📡</div><div><div class="hw-name" style="font-size:13px">ACS ACR122U + NFC wristbands (x20)</div></div><div class="hw-price">$110</div></div>
+        <div class="hw-item"><div class="hw-icon" style="font-size:18px">🔢</div><div><div class="hw-name" style="font-size:13px">Stainless IP67 numpad + hub</div></div><div class="hw-price">$70</div></div>
+        <div class="divider"></div>
+        <div class="hw-item" style="border-color:#4338ca"><div class="hw-icon" style="font-size:18px">📦</div><div><div class="hw-name" style="color:#818cf8">Per station total</div><div class="hw-spec" style="color:#6366f1">excl. enclosure</div></div><div class="hw-price" style="font-size:16px">~$710</div></div>
+      </div>
+      <div class="col flex-1" style="gap:16px">
+        <div class="card" style="padding:20px">
+          <h3 style="margin-bottom:14px;color:#94a3b8">Scale pricing</h3>
+          <div style="display:flex;flex-direction:column;gap:8px">
+            <div style="display:flex;justify-content:space-between;align-items:center;padding:10px;background:#1e1e2e;border-radius:8px">
+              <span style="font-size:13px;color:#94a3b8">1 branch (pilot)</span>
+              <span style="font-weight:700;color:#34d399">~$710</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;align-items:center;padding:10px;background:#1e1e2e;border-radius:8px">
+              <span style="font-size:13px;color:#94a3b8">5 branches</span>
+              <span style="font-weight:700;color:#34d399">~$3,500</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;align-items:center;padding:10px;background:#1e1e2e;border-radius:8px">
+              <span style="font-size:13px;color:#94a3b8">10 branches</span>
+              <span style="font-weight:700;color:#34d399">~$7,100</span>
+            </div>
+          </div>
+        </div>
+        <div class="card-sm" style="border-color:#1e3a5f">
+          <div style="font-size:12px;color:#60a5fa">💡 Additional wristbands: ~$4/employee at bulk. For 50 employees across 5 branches = ~$200 total.</div>
+        </div>
+        <div class="card-sm" style="border-color:#14532d">
+          <div style="font-size:12px;color:#4ade80">✓ Software cost: $0 — built on existing Base44 subscription. No per-seat SaaS fees.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SLIDE 13: Roadmap -->
+  <div class="slide" id="s13">
+    <div class="label">Roadmap</div>
+    <h2>V1 ships fast. Then we expand.</h2>
+    <p class="subtitle">The kiosk shell is designed so each new module is a self-contained addition — zero changes to auth or core shell.</p>
+    <div class="row mt-32 gap-32">
+      <div class="col flex-1" style="gap:12px">
+        <div class="roadmap-item">
+          <div class="roadmap-dot" style="background:#4ade80"></div>
+          <div class="roadmap-line">
+            <div style="font-size:12px;font-weight:700;color:#4ade80">V1 — Now</div>
+            <div style="font-size:14px;color:white;font-weight:600">Biometric Attendance</div>
+            <div style="font-size:12px;color:#64748b">Clock in/out · Fingerprint + NFC+PIN · Manager enrollment · Today's punches</div>
+          </div>
+        </div>
+        <div style="width:2px;height:20px;background:#1e1e2e;margin-left:5px"></div>
+        <div class="roadmap-item">
+          <div class="roadmap-dot" style="background:#818cf8"></div>
+          <div class="roadmap-line">
+            <div style="font-size:12px;font-weight:700;color:#818cf8">V2 — Next</div>
+            <div style="font-size:14px;color:white;font-weight:600">Inventory Spot-Counts</div>
+            <div style="font-size:12px;color:#64748b">Employee reports current stock level for a product at the station — feeds into inventory module</div>
+          </div>
+        </div>
+        <div style="width:2px;height:20px;background:#1e1e2e;margin-left:5px"></div>
+        <div class="roadmap-item">
+          <div class="roadmap-dot" style="background:#fbbf24"></div>
+          <div class="roadmap-line">
+            <div style="font-size:12px;font-weight:700;color:#fbbf24">V3 — Future</div>
+            <div style="font-size:14px;color:white;font-weight:600">Employee Requests</div>
+            <div style="font-size:12px;color:#64748b">Leave requests, shift swaps, early exit — submitted at the kiosk, approved in the main ERP by management</div>
+          </div>
+        </div>
+        <div style="width:2px;height:20px;background:#1e1e2e;margin-left:5px"></div>
+        <div class="roadmap-item">
+          <div class="roadmap-dot" style="background:#f87171"></div>
+          <div class="roadmap-line">
+            <div style="font-size:12px;font-weight:700;color:#f87171">V4 — Future</div>
+            <div style="font-size:14px;color:white;font-weight:600">Opening / Closing Checklists</div>
+            <div style="font-size:12px;color:#64748b">Checklist items displayed at kiosk, employee marks completion with their biometric identity attached</div>
+          </div>
+        </div>
+      </div>
+      <div class="col flex-1" style="gap:12px">
+        <div class="card" style="padding:24px">
+          <h3 style="margin-bottom:12px;color:#94a3b8">Adding a module = 3 steps</h3>
+          <div class="step-list">
+            <div class="step"><div class="step-num" style="width:22px;height:22px;font-size:10px">1</div><div class="step-text" style="font-size:12px">Create a new Base44 function for the module's data</div></div>
+            <div class="step"><div class="step-num" style="width:22px;height:22px;font-size:10px">2</div><div class="step-text" style="font-size:12px">Create a new React component under <code>src/kiosk/modules/</code></div></div>
+            <div class="step"><div class="step-num" style="width:22px;height:22px;font-size:10px">3</div><div class="step-text" style="font-size:12px">Register a tile in the <code>MODULES</code> array — it appears for the right roles</div></div>
+          </div>
+          <div style="margin-top:14px;font-size:12px;color:#64748b;border-top:1px solid #1e1e2e;padding-top:12px">Auth shell, hardware bridge, auto-logout, and Base44 client are fully shared — never touched again.</div>
+        </div>
+        <div class="card-sm" style="border-color:#451a03">
+          <div style="font-size:12px;color:#fbbf24">🔌 Scale port (nirosta enclosure) reserved for future direct weight-logging from kiosk — plug in USB scale, add one module.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SLIDE 14: Summary -->
+  <div class="slide center" id="s14">
+    <div class="label">Summary</div>
+    <h2 style="font-size:48px">What we're building</h2>
+    <p class="subtitle" style="max-width:600px;margin:16px auto 32px">A production-grade, biometric kiosk purpose-built for kitchen operations — built in-house, owned by us, extensible without limits.</p>
+    <div class="row" style="gap:16px;justify-content:center;flex-wrap:wrap;max-width:800px">
+      <div class="card-sm" style="text-align:center;min-width:150px">
+        <div style="font-size:28px;margin-bottom:8px">🖐️ 📡</div>
+        <div style="font-size:12px;font-weight:600;color:white">Dual biometric auth</div>
+        <div style="font-size:11px;color:#64748b">Fingerprint + NFC+PIN</div>
+      </div>
+      <div class="card-sm" style="text-align:center;min-width:150px">
+        <div style="font-size:28px;margin-bottom:8px">⚡</div>
+        <div style="font-size:12px;font-weight:600;color:white">Under 15 seconds</div>
+        <div style="font-size:11px;color:#64748b">Tap to confirmed punch</div>
+      </div>
+      <div class="card-sm" style="text-align:center;min-width:150px">
+        <div style="font-size:28px;margin-bottom:8px">💰</div>
+        <div style="font-size:12px;font-weight:600;color:white">~$710 / station</div>
+        <div style="font-size:11px;color:#64748b">No SaaS fees</div>
+      </div>
+      <div class="card-sm" style="text-align:center;min-width:150px">
+        <div style="font-size:28px;margin-bottom:8px">🔒</div>
+        <div style="font-size:12px;font-weight:600;color:white">Privacy-safe</div>
+        <div style="font-size:11px;color:#64748b">Biometric stays on device</div>
+      </div>
+      <div class="card-sm" style="text-align:center;min-width:150px">
+        <div style="font-size:28px;margin-bottom:8px">🔄</div>
+        <div style="font-size:12px;font-weight:600;color:white">Zero-touch updates</div>
+        <div style="font-size:11px;color:#64748b">Push → auto-deploy</div>
+      </div>
+      <div class="card-sm" style="text-align:center;min-width:150px">
+        <div style="font-size:28px;margin-bottom:8px">🧩</div>
+        <div style="font-size:12px;font-weight:600;color:white">Extensible shell</div>
+        <div style="font-size:11px;color:#64748b">Inventory, requests, checklists</div>
+      </div>
+    </div>
+    <div style="margin-top:32px;padding:14px 28px;background:#4338ca;border-radius:12px;display:inline-block">
+      <div style="font-size:14px;font-weight:600">Pilot: 1 branch · Build → Deploy → Validate → Roll out</div>
+    </div>
+  </div>
+
+</div>
+
+<!-- Navigation -->
+<div class="nav">
+  <button onclick="prev()">←</button>
+  <span class="counter" id="counter">1 / 14</span>
+  <button onclick="next()">→</button>
+</div>
+
+<script>
+  const TOTAL = 14;
+  let current = 1;
+
+  function show(n) {
+    document.querySelectorAll('.slide').forEach(s => s.classList.remove('active'));
+    document.getElementById('s' + n).classList.add('active');
+    document.getElementById('counter').textContent = n + ' / ' + TOTAL;
+    document.getElementById('progress').style.width = (n / TOTAL * 100) + '%';
+    current = n;
+  }
+
+  function next() { if (current < TOTAL) show(current + 1); }
+  function prev() { if (current > 1) show(current - 1); }
+
+  document.addEventListener('keydown', e => {
+    if (e.key === 'ArrowRight' || e.key === 'ArrowDown' || e.key === ' ') next();
+    if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') prev();
+  });
+
+
+  const HASH = 'ab8d37fe6502a1f42b13eae2e9b81e9fd37eaaaa45bcfe185d7ea9d4055daf57';
+
+  async function sha256(str) {
+    const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(str));
+    return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2,'0')).join('');
+  }
+
+  async function checkPwd() {
+    const val = document.getElementById('pwd').value;
+    const h = await sha256(val);
+    if (h === HASH) {
+      sessionStorage.setItem('kiosk_auth', '1');
+      document.getElementById('gate').style.display = 'none';
+      show(1);
+    } else {
+      const err = document.getElementById('err');
+      err.textContent = 'Wrong password — try again';
+      document.getElementById('pwd').value = '';
+      document.getElementById('pwd').focus();
+      setTimeout(() => { err.textContent = ''; }, 3000);
+    }
+  }
+
+  if (sessionStorage.getItem('kiosk_auth') === '1') {
+    document.getElementById('gate').style.display = 'none';
+    show(1);
+  }
+
+</script>
+</body>
+</html>
