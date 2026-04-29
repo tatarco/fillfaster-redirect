@@ -1,0 +1,1263 @@
+<!DOCTYPE html>
+<html lang="he">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BizFlow WhatsApp Bot</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Hebrew:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --green:#25D366;--dark-green:#128C7E;--wa-header:#075E54;
+  --wa-bg:#e5ddd5;--wa-bot:#fff;--wa-user:#dcf8c6;
+  --bg:#0d1117;--surface:#161b22;--card:#1f2937;
+  --text:#f0f6fc;--muted:#8b949e;
+  --emerald:#10b981;--emerald-light:#d1fae5;
+  --blue:#3b82f6;--blue-light:#dbeafe;
+  --amber:#f59e0b;--amber-light:#fef3c7;
+  --red:#ef4444;
+  --radius:16px;
+}
+html,body{height:100%;overflow:hidden;background:var(--bg);font-family:'Inter',sans-serif;color:var(--text);direction:rtl}
+/* ─── SLIDES ─────────────────────────────────────── */
+#deck{width:100%;height:100vh;position:relative}
+.slide{
+  position:absolute;inset:0;display:flex;flex-direction:column;
+  opacity:0;pointer-events:none;transition:opacity .4s ease;
+  overflow:hidden;
+}
+.slide.active{opacity:1;pointer-events:all}
+
+/* ─── NAV ────────────────────────────────────────── */
+#nav{
+  position:fixed;right:24px;top:50%;transform:translateY(-50%);
+  display:flex;flex-direction:column;gap:8px;z-index:100;
+}
+.dot{
+  width:8px;height:8px;border-radius:50%;
+  background:rgba(255,255,255,.25);cursor:pointer;transition:.2s;
+}
+.dot.on{background:var(--green);transform:scale(1.4)}
+#prev,#next{
+  position:fixed;bottom:24px;background:rgba(255,255,255,.08);
+  border:1px solid rgba(255,255,255,.12);color:var(--text);
+  padding:10px 24px;border-radius:50px;cursor:pointer;
+  font-size:14px;font-weight:500;transition:.2s;z-index:100;
+}
+#prev{left:50%;transform:translateX(calc(-50% - 60px))}
+#next{left:50%;transform:translateX(calc(-50% + 60px))}
+#prev:hover,#next:hover{background:rgba(255,255,255,.16)}
+#counter{
+  position:fixed;bottom:30px;left:50%;transform:translateX(-50%);
+  font-size:13px;color:var(--muted);z-index:100;
+}
+
+/* ─── LAYOUT ─────────────────────────────────────── */
+.slide-inner{
+  flex:1;display:flex;gap:48px;padding:40px 60px 80px;
+  align-items:center;overflow:hidden;direction:rtl;
+}
+.slide-inner.center{justify-content:center}
+.left{flex:1;display:flex;flex-direction:column;gap:20px;min-width:0;text-align:right}
+.right{display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.right.wide{flex:1}
+.full{width:100%}
+
+/* ─── TYPOGRAPHY ─────────────────────────────────── */
+.label{
+  font-size:11px;font-weight:600;letter-spacing:1.5px;
+  text-transform:uppercase;color:var(--green);margin-bottom:4px;
+}
+h1{font-size:52px;font-weight:800;line-height:1.1;letter-spacing:-1px}
+h2{font-size:36px;font-weight:700;line-height:1.2;letter-spacing:-.5px}
+h3{font-size:24px;font-weight:600;line-height:1.3}
+.subtitle{font-size:18px;color:var(--muted);line-height:1.6;font-weight:400}
+.body{font-size:15px;color:var(--muted);line-height:1.7}
+.tag{
+  display:inline-flex;align-items:center;gap:6px;
+  background:rgba(16,185,129,.15);color:var(--emerald);
+  border:1px solid rgba(16,185,129,.3);
+  padding:4px 12px;border-radius:50px;font-size:12px;font-weight:600;
+}
+.tag.blue{background:rgba(59,130,246,.15);color:var(--blue);border-color:rgba(59,130,246,.3)}
+.tag.amber{background:rgba(245,158,11,.15);color:var(--amber);border-color:rgba(245,158,11,.3)}
+
+/* ─── HERO ───────────────────────────────────────── */
+#s1{
+  background:linear-gradient(135deg,#0d1117 0%,#0d2818 50%,#0d1117 100%);
+}
+.hero-badge{
+  display:inline-flex;align-items:center;gap:8px;
+  background:rgba(37,211,102,.12);border:1px solid rgba(37,211,102,.25);
+  padding:8px 16px;border-radius:50px;font-size:13px;color:var(--green);
+  font-weight:500;margin-bottom:16px;
+}
+.stats-row{display:flex;gap:32px;margin-top:16px;flex-wrap:wrap}
+.stat{display:flex;flex-direction:column;gap:4px}
+.stat-val{font-size:32px;font-weight:800;color:var(--green)}
+.stat-lbl{font-size:12px;color:var(--muted);font-weight:500}
+.hero-phone-wrap{
+  position:relative;display:flex;align-items:center;
+  justify-content:center;
+}
+.glow{
+  position:absolute;width:320px;height:320px;
+  background:radial-gradient(circle,rgba(37,211,102,.2) 0%,transparent 70%);
+  pointer-events:none;
+}
+
+/* ─── CARDS ─────────────────────────────────────── */
+.card{
+  background:var(--surface);border:1px solid rgba(255,255,255,.08);
+  border-radius:var(--radius);padding:24px;
+}
+.card.green{border-color:rgba(16,185,129,.3);background:rgba(16,185,129,.05)}
+.card.blue{border-color:rgba(59,130,246,.3);background:rgba(59,130,246,.05)}
+.card.amber{border-color:rgba(245,158,11,.3);background:rgba(245,158,11,.05)}
+.features-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;width:100%}
+.feature-card{
+  background:var(--surface);border:1px solid rgba(255,255,255,.08);
+  border-radius:12px;padding:20px;display:flex;flex-direction:column;gap:8px;
+  transition:.2s;
+}
+.feature-card:hover{border-color:rgba(255,255,255,.2);transform:translateY(-2px)}
+.f-icon{font-size:28px;margin-bottom:4px}
+.f-name{font-size:14px;font-weight:600}
+.f-desc{font-size:12px;color:var(--muted);line-height:1.5}
+.f-meta{display:flex;gap:6px;margin-top:auto;flex-wrap:wrap}
+.pill{
+  font-size:10px;font-weight:600;padding:2px 8px;border-radius:50px;
+  background:rgba(255,255,255,.08);color:var(--muted);
+}
+.pill.emp{background:rgba(16,185,129,.15);color:var(--emerald)}
+.pill.mgr{background:rgba(59,130,246,.15);color:var(--blue)}
+.pill.v1{background:rgba(37,211,102,.15);color:var(--green)}
+.pill.v2{background:rgba(245,158,11,.15);color:var(--amber)}
+
+/* ─── SLIDE HEADER ───────────────────────────────── */
+.slide-header{
+  background:linear-gradient(270deg,rgba(37,211,102,.08),transparent);
+  border-bottom:1px solid rgba(255,255,255,.06);
+  padding:18px 60px;display:flex;align-items:center;gap:16px;
+  flex-shrink:0;direction:rtl;text-align:right;
+}
+.slide-num{
+  width:32px;height:32px;border-radius:50%;
+  background:rgba(37,211,102,.15);border:1px solid rgba(37,211,102,.3);
+  display:flex;align-items:center;justify-content:center;
+  font-size:13px;font-weight:700;color:var(--green);flex-shrink:0;
+}
+.slide-header h4{font-size:15px;font-weight:600;color:var(--muted)}
+.slide-header .tag{margin-right:auto}
+
+/* ─── PHONE FRAME ────────────────────────────────── */
+.phone{
+  width:252px;height:504px;
+  border:7px solid #1c1c1e;border-radius:40px;
+  overflow:hidden;background:var(--wa-bg);
+  box-shadow:0 30px 80px rgba(0,0,0,.6),inset 0 0 0 1px rgba(255,255,255,.08);
+  display:flex;flex-direction:column;position:relative;flex-shrink:0;
+}
+.phone.tall{height:540px}
+.phone.short{height:420px;width:220px}
+.phone::before{
+  content:'';position:absolute;top:0;left:50%;transform:translateX(-50%);
+  width:60px;height:16px;background:#1c1c1e;border-radius:0 0 10px 10px;z-index:20;
+}
+.wa-status{
+  background:var(--wa-header);height:10px;flex-shrink:0;
+  padding-top:18px;
+}
+.wa-hdr{
+  background:var(--wa-header);color:#fff;
+  padding:8px 10px 8px;display:flex;align-items:center;gap:8px;
+  flex-shrink:0;
+}
+.wa-avatar{
+  width:32px;height:32px;border-radius:50%;
+  background:#25D366;display:flex;align-items:center;justify-content:center;
+  font-size:13px;font-weight:700;flex-shrink:0;
+}
+.wa-contact{display:flex;flex-direction:column}
+.wa-contact span:first-child{font-size:13px;font-weight:600;line-height:1.2}
+.wa-contact span:last-child{font-size:10px;opacity:.7}
+.wa-chat{
+  flex:1;overflow:hidden;padding:8px 6px;
+  display:flex;flex-direction:column;gap:3px;
+}
+.wa-date{
+  text-align:center;font-size:10px;color:#667781;
+  background:rgba(255,255,255,.6);border-radius:6px;
+  padding:2px 8px;align-self:center;margin:3px 0;
+}
+/* Messages */
+.m{max-width:82%;display:flex;flex-direction:column;position:relative}
+.m.b{align-self:flex-start}
+.m.u{align-self:flex-end}
+.m-body{
+  padding:5px 8px;border-radius:8px;
+  font-size:11.5px;line-height:1.45;
+  font-family:'Noto Sans Hebrew','Inter',sans-serif;
+  color:#111;
+}
+.m.b .m-body{
+  background:var(--wa-bot);border-radius:0 8px 8px 8px;
+  box-shadow:0 1px 2px rgba(0,0,0,.12);
+}
+.m.u .m-body{
+  background:var(--wa-user);border-radius:8px 0 8px 8px;
+  box-shadow:0 1px 2px rgba(0,0,0,.12);
+  text-align:right;direction:rtl;
+}
+.m-time{font-size:9px;color:#667781;margin-top:1px;align-self:flex-end}
+.m.u .m-time{align-self:flex-end}
+.m-body p{direction:rtl;text-align:right;margin:0}
+.m-body p+p{margin-top:3px}
+.m-body strong{font-weight:600}
+
+/* WhatsApp button row */
+.wa-btns{
+  display:flex;flex-direction:column;gap:2px;
+  margin-top:2px;align-self:flex-start;width:82%;
+}
+.wa-btns.row{flex-direction:row;flex-wrap:wrap;gap:4px}
+.wa-btn{
+  background:#fff;border:none;border-top:1px solid #e9edef;
+  padding:6px 10px;cursor:pointer;
+  font-size:11px;font-weight:600;color:#0a7cff;
+  border-radius:6px;text-align:center;
+  font-family:'Noto Sans Hebrew','Inter',sans-serif;
+  box-shadow:0 1px 2px rgba(0,0,0,.08);
+}
+.wa-btn.tapped{background:#d9fdd3;color:#1a7a32}
+/* WhatsApp list message */
+.wa-list{
+  background:#fff;border-radius:0 8px 8px 8px;
+  padding:6px 8px;align-self:flex-start;max-width:85%;
+  box-shadow:0 1px 2px rgba(0,0,0,.12);
+}
+.wa-list-hdr{font-size:11px;font-weight:600;direction:rtl;text-align:right;margin-bottom:6px;color:#111;font-family:'Noto Sans Hebrew','Inter',sans-serif}
+.wa-list-item{
+  display:flex;align-items:center;gap:6px;
+  padding:5px 6px;border-radius:6px;cursor:pointer;
+  font-size:11px;font-family:'Noto Sans Hebrew','Inter',sans-serif;
+  direction:rtl;text-align:right;
+}
+.wa-list-item:hover{background:#f5f5f5}
+.wa-list-item .ico{font-size:14px;flex-shrink:0}
+.wa-list-item .txt{display:flex;flex-direction:column}
+.wa-list-item .txt span{font-size:9px;color:#667781}
+.wa-list-btn{
+  border-top:1px solid #e9edef;margin-top:4px;padding-top:4px;
+  text-align:center;font-size:10px;color:#0a7cff;font-weight:600;
+  font-family:'Noto Sans Hebrew','Inter',sans-serif;
+}
+/* Attachment bubble */
+.wa-attach{
+  display:flex;align-items:center;gap:6px;
+  background:#fff;border-radius:8px;padding:6px 8px;
+  align-self:flex-end;max-width:80%;
+  box-shadow:0 1px 2px rgba(0,0,0,.12);
+}
+.wa-attach .ico2{
+  width:28px;height:28px;background:#075E54;border-radius:6px;
+  display:flex;align-items:center;justify-content:center;font-size:13px;flex-shrink:0;
+}
+.wa-attach .info{display:flex;flex-direction:column}
+.wa-attach .info span:first-child{font-size:10px;font-weight:600;direction:rtl}
+.wa-attach .info span:last-child{font-size:9px;color:#667781}
+/* System message */
+.wa-sys{
+  text-align:center;font-size:10px;color:#667781;
+  background:rgba(255,255,255,.6);border-radius:6px;
+  padding:3px 8px;align-self:center;margin:2px 0;
+  font-family:'Noto Sans Hebrew','Inter',sans-serif;
+}
+
+/* ─── CONCEPT BLOCKS ─────────────────────────────── */
+.concept-cols{display:flex;gap:20px;width:100%}
+.concept-col{flex:1;display:flex;flex-direction:column;gap:12px}
+.concept-item{
+  display:flex;gap:12px;align-items:flex-start;
+  background:var(--surface);border:1px solid rgba(255,255,255,.08);
+  border-radius:12px;padding:14px;
+}
+.concept-icon{
+  width:40px;height:40px;border-radius:10px;
+  display:flex;align-items:center;justify-content:center;
+  font-size:20px;flex-shrink:0;
+}
+.concept-icon.g{background:rgba(16,185,129,.15)}
+.concept-icon.b{background:rgba(59,130,246,.15)}
+.concept-icon.a{background:rgba(245,158,11,.15)}
+.concept-icon.r{background:rgba(239,68,68,.15)}
+.concept-text h5{font-size:14px;font-weight:600;margin-bottom:4px}
+.concept-text p{font-size:12px;color:var(--muted);line-height:1.5}
+
+/* ─── FEATURE STRUCT ────────────────────────────── */
+.struct-box{
+  background:var(--surface);border:1px solid rgba(255,255,255,.1);
+  border-radius:12px;padding:16px;font-size:12px;font-family:'Courier New',monospace;
+  color:#e2e8f0;line-height:1.8;
+}
+.struct-box .k{color:#93c5fd}  /* key */
+.struct-box .t{color:#86efac}  /* type */
+.struct-box .s{color:#fca5a5}  /* string */
+.struct-box .c{color:#6b7280}  /* comment */
+
+/* ─── TOKEN EDITOR ───────────────────────────────── */
+.token-editor{
+  background:var(--surface);border:1px solid rgba(255,255,255,.1);
+  border-radius:12px;padding:16px;
+}
+.te-label{font-size:11px;font-weight:600;color:var(--muted);margin-bottom:8px;letter-spacing:.5px}
+.te-row{
+  display:flex;align-items:center;gap:8px;flex-wrap:wrap;
+  background:rgba(0,0,0,.2);border-radius:8px;padding:8px 10px;min-height:36px;
+}
+.token{
+  display:inline-flex;align-items:center;gap:4px;
+  padding:3px 8px;border-radius:50px;font-size:11px;font-weight:600;cursor:pointer;
+}
+.token.lit{background:rgba(255,255,255,.1);color:var(--text)}
+.token.emp{background:rgba(16,185,129,.2);color:var(--emerald);border:1px solid rgba(16,185,129,.3)}
+.token.sys{background:rgba(59,130,246,.2);color:var(--blue);border:1px solid rgba(59,130,246,.3)}
+.token.ent{background:rgba(245,158,11,.2);color:var(--amber);border:1px solid rgba(245,158,11,.3)}
+.token-add{
+  padding:3px 8px;border-radius:50px;
+  font-size:11px;background:rgba(255,255,255,.06);
+  color:var(--muted);cursor:pointer;border:1px dashed rgba(255,255,255,.15);
+}
+.te-preview{
+  margin-top:10px;padding:8px 10px;background:rgba(37,211,102,.08);
+  border-radius:8px;font-size:12px;direction:rtl;text-align:right;
+  color:var(--emerald);border:1px solid rgba(37,211,102,.2);
+  font-family:'Noto Sans Hebrew','Inter',sans-serif;
+}
+
+/* ─── FLOW STEPS ─────────────────────────────────── */
+.flow-steps{display:flex;flex-direction:column;gap:10px}
+.step{
+  display:flex;align-items:flex-start;gap:12px;
+  padding:12px 14px;background:var(--surface);
+  border:1px solid rgba(255,255,255,.08);border-radius:10px;
+}
+.step-num{
+  width:24px;height:24px;border-radius:50%;
+  background:rgba(37,211,102,.15);border:1px solid rgba(37,211,102,.3);
+  display:flex;align-items:center;justify-content:center;
+  font-size:11px;font-weight:700;color:var(--green);flex-shrink:0;
+}
+.step-body{display:flex;flex-direction:column;gap:2px}
+.step-body strong{font-size:13px;font-weight:600}
+.step-body span{font-size:11px;color:var(--muted)}
+
+/* ─── ROADMAP ────────────────────────────────────── */
+.roadmap{display:flex;gap:20px;width:100%}
+.rm-col{
+  flex:1;background:var(--surface);
+  border:1px solid rgba(255,255,255,.08);border-radius:14px;
+  overflow:hidden;
+}
+.rm-header{
+  padding:14px 18px;border-bottom:1px solid rgba(255,255,255,.08);
+  display:flex;align-items:center;gap:10px;
+}
+.rm-badge{
+  width:28px;height:28px;border-radius:8px;
+  display:flex;align-items:center;justify-content:center;
+  font-size:12px;font-weight:800;
+}
+.rm-col.v1 .rm-badge{background:rgba(37,211,102,.2);color:var(--green)}
+.rm-col.v2 .rm-badge{background:rgba(245,158,11,.2);color:var(--amber)}
+.rm-col.v3 .rm-badge{background:rgba(59,130,246,.2);color:var(--blue)}
+.rm-header span{font-size:13px;font-weight:600}
+.rm-header small{font-size:11px;color:var(--muted);margin-right:auto}
+.rm-list{padding:14px 18px;display:flex;flex-direction:column;gap:8px}
+.rm-item{
+  display:flex;align-items:center;gap:8px;font-size:13px;
+}
+.rm-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0}
+.v1 .rm-dot{background:var(--green)}
+.v2 .rm-dot{background:var(--amber)}
+.v3 .rm-dot{background:var(--blue)}
+
+/* ─── ARCH ───────────────────────────────────────── */
+.arch-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;width:100%}
+.arch-node{
+  background:var(--surface);border:1px solid rgba(255,255,255,.1);
+  border-radius:12px;padding:18px;display:flex;flex-direction:column;gap:8px;
+}
+.arch-node .icon{font-size:28px}
+.arch-node h5{font-size:14px;font-weight:600}
+.arch-node p{font-size:12px;color:var(--muted);line-height:1.5}
+.arch-arrow{
+  display:flex;align-items:center;justify-content:center;
+  color:var(--muted);font-size:20px;
+}
+
+/* ─── BOT BUILDER TABS ───────────────────────────── */
+.bb-tabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:16px}
+.bb-tab{
+  padding:6px 14px;border-radius:50px;font-size:12px;font-weight:600;
+  background:var(--surface);border:1px solid rgba(255,255,255,.1);
+  color:var(--muted);cursor:pointer;
+}
+.bb-tab.active{background:rgba(37,211,102,.15);color:var(--green);border-color:rgba(37,211,102,.3)}
+.bb-content{
+  background:var(--surface);border:1px solid rgba(255,255,255,.08);
+  border-radius:12px;padding:18px;min-height:220px;
+}
+
+/* ─── NAME BADGE ─────────────────────────────────── */
+.name-change{
+  display:inline-flex;align-items:center;gap:8px;
+  background:rgba(245,158,11,.1);border:1px solid rgba(245,158,11,.25);
+  padding:6px 14px;border-radius:8px;font-size:13px;
+}
+.name-old{text-decoration:line-through;color:var(--muted)}
+.name-new{color:var(--amber);font-weight:600}
+</style>
+</head>
+<body>
+
+<!-- ╔══════════════════════════════════╗ -->
+<!-- ║  PASSWORD GATE                   ║ -->
+<!-- ╚══════════════════════════════════╝ -->
+<div id="gate" style="
+  position:fixed;inset:0;z-index:9999;
+  background:linear-gradient(135deg,#0d1117 0%,#0d2818 60%,#0d1117 100%);
+  display:flex;align-items:center;justify-content:center;
+  font-family:'Noto Sans Hebrew','Inter',sans-serif;
+  direction:rtl;
+">
+  <div style="text-align:center;max-width:560px;padding:48px;display:flex;flex-direction:column;align-items:center;gap:24px">
+    <div style="display:inline-flex;align-items:center;gap:8px;background:rgba(37,211,102,.12);border:1px solid rgba(37,211,102,.25);padding:8px 20px;border-radius:50px;font-size:13px;color:#25D366;font-weight:500">🤖 BizFlow WhatsApp Bot</div>
+    <h1 style="font-size:40px;font-weight:800;line-height:1.15;color:#f0f6fc;letter-spacing:-1px">כל עובד מחזיק<br><span style="color:#25D366">את ה-ERP בכיס</span></h1>
+    <p style="font-size:16px;color:#8b949e;line-height:1.7;max-width:440px">BizFlow WhatsApp Bot הופך את ה-ERP לנגיש לכל עובד שטח ישירות מהסמארטפון — הגשת בקשות שכר ו-HR, אישורי משמרות, מעקב סטטוס ואישורי מנהלים, הכל דרך WhatsApp ללא אפליקציה נפרדת. הפתרון מבוסס state machine בשרת עם Bot Builder Admin UI לניהול מלא, עריכת תוכן דינמי, קונסולת בדיקה ואנליטיקס.</p>
+    <div style="display:flex;flex-direction:column;align-items:center;gap:10px;width:100%;max-width:280px">
+      <input id="pwd" type="password" placeholder="הכנס סיסמה לצפייה בפרזנטציה"
+        style="width:100%;padding:12px 16px;border-radius:12px;border:1px solid rgba(255,255,255,.15);background:rgba(255,255,255,.06);color:#f0f6fc;font-size:15px;text-align:center;font-family:inherit;outline:none;"
+        onkeydown="if(event.key==='Enter')unlock()"
+      >
+      <button onclick="unlock()" style="width:100%;padding:12px 24px;border-radius:12px;background:#25D366;border:none;color:#fff;font-size:15px;font-weight:700;cursor:pointer;font-family:inherit;transition:.2s" onmouseover="this.style.background='#1db954'" onmouseout="this.style.background='#25D366'">כניסה לפרזנטציה</button>
+      <p id="gate-err" style="color:#ef4444;font-size:13px;display:none">סיסמה שגויה, נסה שנית.</p>
+    </div>
+    <div style="display:flex;gap:32px;margin-top:8px">
+      <div style="display:flex;flex-direction:column;align-items:center;gap:4px"><span style="font-size:28px;font-weight:800;color:#25D366">14</span><span style="font-size:11px;color:#8b949e">שקופיות</span></div>
+      <div style="display:flex;flex-direction:column;align-items:center;gap:4px"><span style="font-size:28px;font-weight:800;color:#25D366">10</span><span style="font-size:11px;color:#8b949e">פיצ'רים V1</span></div>
+      <div style="display:flex;flex-direction:column;align-items:center;gap:4px"><span style="font-size:28px;font-weight:800;color:#25D366">0</span><span style="font-size:11px;color:#8b949e">אפליקציות</span></div>
+    </div>
+  </div>
+</div>
+
+<div id="deck" style="display:none">
+
+<!-- ╔══════════════════════════════╗ -->
+<!-- ║  1 — HERO                    ║ -->
+<!-- ╚══════════════════════════════╝ -->
+<div class="slide active" id="s1">
+<div class="slide-inner" style="gap:64px">
+<div class="left" style="max-width:560px">
+  <div class="hero-badge">🤖 BizFlow WhatsApp Bot</div>
+  <h1>כל עובד מחזיק<br><span style="color:var(--green)">את ה-ERP בכיס</span></h1>
+  <p class="subtitle" style="max-width:480px">עובדי שטח וסניף יכולים להגיש בקשות, לאשר משמרות, לראות סטטוס ולנהל אישורים — הכל דרך WhatsApp. אפס אפליקציות. אפס כניסה למחשב.</p>
+  <div class="stats-row">
+    <div class="stat"><span class="stat-val">0</span><span class="stat-lbl">אפליקציות להתקין</span></div>
+    <div class="stat"><span class="stat-val">100%</span><span class="stat-lbl">WhatsApp נייטיב</span></div>
+    <div class="stat"><span class="stat-val">∞</span><span class="stat-lbl">פיצ'רים מכל גישת UI</span></div>
+  </div>
+</div>
+<div class="right">
+  <div class="hero-phone-wrap">
+    <div class="glow"></div>
+    <div class="phone tall">
+      <div class="wa-status"></div>
+      <div class="wa-hdr">
+        <div class="wa-avatar">B</div>
+        <div class="wa-contact"><span>BizFlow Bot</span><span>מחובר ✓</span></div>
+      </div>
+      <div class="wa-chat">
+        <div class="wa-date">היום</div>
+        <div class="m b"><div class="m-body"><p>שלום אחמד! 👋</p><p>מה תרצה לעשות?</p></div><span class="m-time">09:01</span></div>
+        <div class="wa-btns">
+          <div class="wa-btn">📝 הגש בקשה</div>
+          <div class="wa-btn">📋 הבקשות שלי</div>
+          <div class="wa-btn tapped">📅 המשמרות שלי</div>
+        </div>
+        <div class="m u"><div class="m-body"><p>המשמרות שלי</p></div><span class="m-time">09:01 ✓✓</span></div>
+        <div class="m b"><div class="m-body"><p><strong>📅 משמרות השבוע שלך:</strong></p><p>▶️ מחר — ראשון 29/04</p><p>⏰ 09:00–17:00 | ת"א</p><p>יום שני 30/04</p><p>⏰ 12:00–20:00 | ת"א</p></div><span class="m-time">09:01</span></div>
+        <div class="wa-btns row">
+          <div class="wa-btn">✓ אשר 29/04</div>
+          <div class="wa-btn">📋 כל השבוע</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+</div>
+</div>
+
+
+<!-- ╔══════════════════════════════╗ -->
+<!-- ║  2 — CONCEPT                 ║ -->
+<!-- ╚══════════════════════════════╝ -->
+<div class="slide" id="s2" style="background:var(--bg)">
+<div class="slide-header"><div class="slide-num">2</div><h4>הקונספט</h4><span class="tag">ארכיטקטורה</span></div>
+<div class="slide-inner" style="padding-top:24px">
+<div class="left">
+  <div class="label">איך זה עובד</div>
+  <h2>הבוט חי<br>בשרת — לא ב-Meta</h2>
+  <p class="body" style="max-width:440px">Meta / 99Digital שולחים POST לכל הודעה נכנסת. השרת קורא את ה-session, מחליט מה לענות, ושולח תגובה חזרה דרך ה-API. אפס קוד ב-Meta, אפס review process, deploy מיידי.</p>
+  <div class="flow-steps" style="margin-top:8px">
+    <div class="step"><div class="step-num">1</div><div class="step-body"><strong>עובד שולח הודעה</strong><span>Meta / 99Digital מעבירים POST ל-webhook</span></div></div>
+    <div class="step"><div class="step-num">2</div><div class="step-body"><strong>זיהוי עובד</strong><span>מתאים מספר טלפון → Employee record</span></div></div>
+    <div class="step"><div class="step-num">3</div><div class="step-body"><strong>session state</strong><span>טוען את ה-session הפעיל — מה המצב, באיזה שלב</span></div></div>
+    <div class="step"><div class="step-num">4</div><div class="step-body"><strong>ניתוב לפיצ'ר</strong><span>מפעיל את הlogi הרלוונטי לפי הרשאות המשתמש</span></div></div>
+    <div class="step"><div class="step-num">5</div><div class="step-body"><strong>שליחת תשובה</strong><span>text / buttons / list / media — לפי הקונטקסט</span></div></div>
+  </div>
+</div>
+<div class="right wide">
+  <div style="display:flex;flex-direction:column;gap:16px;width:100%;max-width:480px">
+    <div class="concept-cols">
+      <div class="concept-col">
+        <div class="concept-item">
+          <div class="concept-icon g">🧩</div>
+          <div class="concept-text"><h5>BotFeature כ-primitive</h5><p>כל יכולת בבוט היא Feature עם שם, copy מוגדר, הרשאות וlogi מובנה. הוספת פיצ'ר = הוספת record.</p></div>
+        </div>
+        <div class="concept-item">
+          <div class="concept-icon b">🔒</div>
+          <div class="concept-text"><h5>תפריט לפי הרשאות</h5><p>התפריט שעובד רואה נבנה מה-BotFeatures שיש לו גישה אליהם — כמו ב-UI בדיוק.</p></div>
+        </div>
+      </div>
+      <div class="concept-col">
+        <div class="concept-item">
+          <div class="concept-icon a">⚙️</div>
+          <div class="concept-text"><h5>Runtime גנרי לשדות</h5><p>הבוט קורא את PayrollEntryType.fields ומתאים interaction לפי field.type — אין hardcode של שדות.</p></div>
+        </div>
+        <div class="concept-item">
+          <div class="concept-icon r">✏️</div>
+          <div class="concept-text"><h5>Copy מותאם אישית</h5><p>כל טקסט בכל פיצ'ר ניתן לעריכה דרך ה-Bot Builder UI עם editor טוקנים.</p></div>
+        </div>
+      </div>
+    </div>
+    <div class="name-change" style="align-self:flex-start">
+      <span>⚠️</span>
+      <span class="name-old">PayrollEntry</span>
+      <span style="color:var(--muted)">→</span>
+      <span class="name-new">EmployeeEvent</span>
+      <span style="font-size:12px;color:var(--muted)">שם גנרי יותר, מכסה: שכר, HR, חופשה, הוצאות...</span>
+    </div>
+  </div>
+</div>
+</div>
+</div>
+
+
+<!-- ╔══════════════════════════════╗ -->
+<!-- ║  3 — FEATURE OVERVIEW        ║ -->
+<!-- ╚══════════════════════════════╝ -->
+<div class="slide" id="s3" style="background:var(--bg)">
+<div class="slide-header"><div class="slide-num">3</div><h4>כל הפיצ'רים</h4><span class="tag blue">V1 + V2</span></div>
+<div class="slide-inner center" style="padding-top:20px;align-items:flex-start">
+<div class="features-grid full">
+  <div class="feature-card" style="border-color:rgba(16,185,129,.25)">
+    <div class="f-icon">📝</div>
+    <div class="f-name">הגשת EmployeeEvent</div>
+    <div class="f-desc">עובד מגיש כל בקשה עם שדות דינמיים — מחלה, חופשה, שעות נוספות, הוצאות. Runtime גנרי, כולל העלאת קבצים.</div>
+    <div class="f-meta"><span class="pill emp">עובד</span><span class="pill v1">V1</span></div>
+  </div>
+  <div class="feature-card" style="border-color:rgba(16,185,129,.25)">
+    <div class="f-icon">📋</div>
+    <div class="f-name">סטטוס הבקשות שלי</div>
+    <div class="f-desc">עובד רואה 10 הבקשות האחרונות עם סטטוס, תאריך, וסיבת דחייה אם נדחה. שאילתות טקסט חופשי עם Claude.</div>
+    <div class="f-meta"><span class="pill emp">עובד</span><span class="pill v1">V1</span></div>
+  </div>
+  <div class="feature-card" style="border-color:rgba(16,185,129,.25)">
+    <div class="f-icon">📅</div>
+    <div class="f-name">המשמרות שלי</div>
+    <div class="f-desc">תצוגת המשמרות הקרובות — שם משמרת, שעות, סניף. כולל אפשרות לאשר משמרות ולשנות סטטוס.</div>
+    <div class="f-meta"><span class="pill emp">עובד</span><span class="pill v1">V1</span></div>
+  </div>
+  <div class="feature-card" style="border-color:rgba(16,185,129,.25)">
+    <div class="f-icon">⚠️</div>
+    <div class="f-name">הודעת היעדרות</div>
+    <div class="f-desc">עובד מדווח שלא יגיע למשמרת. נוצר EmployeeNote מקושר למשמרת ומנהל מקבל התראה.</div>
+    <div class="f-meta"><span class="pill emp">עובד</span><span class="pill v1">V1</span></div>
+  </div>
+  <div class="feature-card" style="border-color:rgba(16,185,129,.25)">
+    <div class="f-icon">👥</div>
+    <div class="f-name">המלצת עובד</div>
+    <div class="f-desc">עובד שולח שם + טלפון של חבר. נוצר Candidate record עם source=employee-referral אוטומטית.</div>
+    <div class="f-meta"><span class="pill emp">עובד</span><span class="pill v1">V1</span></div>
+  </div>
+  <div class="feature-card" style="border-color:rgba(59,130,246,.25)">
+    <div class="f-icon">⏳</div>
+    <div class="f-name">אישורים ממתינים</div>
+    <div class="f-desc">מנהל רואה בקשות שממתינות לאישורו, יכול לאשר/לדחות (עם סיבה) ולערוך שדות לפני אישור.</div>
+    <div class="f-meta"><span class="pill mgr">מנהל</span><span class="pill v1">V1</span></div>
+  </div>
+  <div class="feature-card" style="border-color:rgba(59,130,246,.25)">
+    <div class="f-icon">🎯</div>
+    <div class="f-name">ראיונות היום</div>
+    <div class="f-desc">מנהל רואה מי מגיע לראיון היום: שם, שעה, טלפון, תפקיד. קישור חייגן ישיר.</div>
+    <div class="f-meta"><span class="pill mgr">מנהל</span><span class="pill v1">V1</span></div>
+  </div>
+  <div class="feature-card" style="border-color:rgba(59,130,246,.25)">
+    <div class="f-icon">🔴</div>
+    <div class="f-name">לא אישרו משמרת</div>
+    <div class="f-desc">מנהל רואה מי עדיין לא אישר את משמרת מחר. שליחת תזכורת בלחיצה אחת לכולם.</div>
+    <div class="f-meta"><span class="pill mgr">מנהל</span><span class="pill v1">V1</span></div>
+  </div>
+  <div class="feature-card" style="border-color:rgba(59,130,246,.25)">
+    <div class="f-icon">👁️</div>
+    <div class="f-name">כיסוי צוות</div>
+    <div class="f-desc">מנהל בודק כמה עובדים מחר / היום לפי שיפט. כולל אזהרה אם מתחת למינימום הדרוש.</div>
+    <div class="f-meta"><span class="pill mgr">מנהל</span><span class="pill v1">V1</span></div>
+  </div>
+  <div class="feature-card" style="opacity:.6;border-style:dashed">
+    <div class="f-icon">📊</div>
+    <div class="f-name">תלוש שכר</div>
+    <div class="f-desc">עובד שואל "מה השכר שלי?" ומקבל סיכום PayrollReport האחרון — סה"כ, שעות, בונוס.</div>
+    <div class="f-meta"><span class="pill emp">עובד</span><span class="pill v2">V2</span></div>
+  </div>
+  <div class="feature-card" style="opacity:.6;border-style:dashed">
+    <div class="f-icon">🎓</div>
+    <div class="f-name">התקדמות הכשרה</div>
+    <div class="f-desc">עובד רואה % התקדמות בTrainingProcess הפעיל שלו. מודול נוכחי, תאריך יעד.</div>
+    <div class="f-meta"><span class="pill emp">עובד</span><span class="pill v2">V2</span></div>
+  </div>
+  <div class="feature-card" style="opacity:.6;border-style:dashed">
+    <div class="f-icon">🔍</div>
+    <div class="f-name">בדיקת מועמד</div>
+    <div class="f-desc">מנהל מחפש מועמד לפי שם/טלפון ורואה את הסטטוס הנוכחי בפייפליין הגיוס.</div>
+    <div class="f-meta"><span class="pill mgr">מנהל</span><span class="pill v2">V2</span></div>
+  </div>
+</div>
+</div>
+</div>
+
+
+<!-- ╔══════════════════════════════╗ -->
+<!-- ║  4 — SUBMIT EMPLOYEE EVENT   ║ -->
+<!-- ╚══════════════════════════════╝ -->
+<div class="slide" id="s4" style="background:var(--bg)">
+<div class="slide-header"><div class="slide-num">4</div><h4>עובד — הגשת EmployeeEvent</h4><span class="tag">מחלה / חופשה / שעות נוספות / הוצאות</span></div>
+<div class="slide-inner" style="padding-top:24px">
+<div class="left">
+  <div class="label">פיצ'ר</div>
+  <h3>הגשת בקשה עם שדות דינמיים</h3>
+  <p class="body">הבוט קורא את <strong style="color:#e2e8f0">EmployeeEventType.fields</strong> ומנחה את העובד שדה-שדה. כל field.type מקבל interaction מתאים — תאריך, טקסט, בחירה, קובץ.</p>
+  <div style="margin-top:12px;display:flex;flex-direction:column;gap:8px">
+    <div class="card green" style="padding:12px 14px">
+      <div style="font-size:12px;font-weight:600;color:var(--emerald);margin-bottom:6px">🔁 Runtime גנרי</div>
+      <div style="font-size:12px;color:var(--muted)">אין hardcode לסוגי בקשות. כל EmployeeEventType שמסומן <strong>allowSelfSubmission</strong> מוצג בתפריט. שדות חדשים — אפס שינוי בקוד הבוט.</div>
+    </div>
+    <div class="card blue" style="padding:12px 14px">
+      <div style="font-size:12px;font-weight:600;color:var(--blue);margin-bottom:6px">📎 העלאת קבצים</div>
+      <div style="font-size:12px;color:var(--muted)">עובד מצלם ושולח — הבוט מוריד מ-WhatsApp CDN ומעלה ל-Base44 storage. URL קבוע נשמר בשדה.</div>
+    </div>
+    <div class="card" style="padding:12px 14px">
+      <div style="font-size:12px;font-weight:600;margin-bottom:6px">📊 progress indicator</div>
+      <div style="font-size:12px;color:var(--muted)">כל הודעה מציגה "שדה 2 מתוך 4" כדי שהעובד יידע איפה הוא בתהליך.</div>
+    </div>
+  </div>
+</div>
+<div class="right">
+  <div class="phone tall">
+    <div class="wa-status"></div>
+    <div class="wa-hdr"><div class="wa-avatar">B</div><div class="wa-contact"><span>BizFlow Bot</span><span>מחובר</span></div></div>
+    <div class="wa-chat">
+      <div class="wa-date">היום 10:30</div>
+      <div class="m b"><div class="m-body"><p>שלום אחמד! 👋 מה תרצה?</p></div></div>
+      <div class="wa-btns"><div class="wa-btn tapped">📝 הגש בקשה</div></div>
+      <div class="m u"><div class="m-body"><p>הגש בקשה</p></div><span class="m-time">10:30</span></div>
+      <div class="wa-list">
+        <div class="wa-list-hdr">בחר/י סוג בקשה:</div>
+        <div class="wa-list-item"><span class="ico">🤒</span><span class="txt">ימי מחלה<span>דיווח היעדרות מחלה</span></span></div>
+        <div class="wa-list-item"><span class="ico">🏖️</span><span class="txt">בקשת חופשה<span>ימי חופשה שנתית</span></span></div>
+        <div class="wa-list-item"><span class="ico">⏰</span><span class="txt">שעות נוספות<span>שעות מעבר למשמרת</span></span></div>
+        <div class="wa-list-btn">▼ בחר</div>
+      </div>
+      <div class="m u"><div class="m-body"><p>🤒 ימי מחלה</p></div><span class="m-time">10:31</span></div>
+      <div class="m b"><div class="m-body"><p><strong>שדה 1 מתוך 3</strong> — תאריך התחלה</p><p>הזן/י תאריך (יי/חח/שששש)</p><p style="font-size:10px;color:#667781">ניתן לכתוב "היום" / "אתמול"</p></div></div>
+      <div class="m u"><div class="m-body"><p>28/04</p></div><span class="m-time">10:31</span></div>
+      <div class="m b"><div class="m-body"><p><strong>שדה 2 מתוך 3</strong> — תאריך סיום</p><p>תחלה: 28/04 ✓</p><p>הזן/י תאריך סיום:</p></div></div>
+      <div class="m u"><div class="m-body"><p>29/04</p></div><span class="m-time">10:32</span></div>
+      <div class="m b"><div class="m-body"><p><strong>שדה 3 מתוך 3</strong> — תעודת מחלה</p><p>שלח/י תמונה או PDF:</p></div></div>
+      <div class="wa-attach" style="align-self:flex-end"><div class="ico2">📄</div><div class="info"><span>sick_note.jpg</span><span>245 KB · נשלח ✓</span></div></div>
+      <div class="m b"><div class="m-body"><p>✅ <strong>הבקשה נשלחה!</strong></p><p>אסמכתא: #4821</p><p>ממתין לאישור המנהל/ת.</p></div></div>
+    </div>
+  </div>
+</div>
+</div>
+</div>
+
+
+<!-- ╔══════════════════════════════╗ -->
+<!-- ║  5 — MY STATUS               ║ -->
+<!-- ╚══════════════════════════════╝ -->
+<div class="slide" id="s5" style="background:var(--bg)">
+<div class="slide-header"><div class="slide-num">5</div><h4>עובד — סטטוס הבקשות שלי</h4><span class="tag">AI + Pattern matching</span></div>
+<div class="slide-inner" style="padding-top:24px">
+<div class="left">
+  <div class="label">פיצ'ר</div>
+  <h3>מה קורה עם הבקשות שלי?</h3>
+  <p class="body">עובד שואל בטקסט חופשי — "מה הסטטוס של הבקשה שלי?" — ומקבל את 10 הבקשות האחרונות עם סטטוס ברור.</p>
+  <div style="margin-top:16px;display:flex;flex-direction:column;gap:10px">
+    <div style="display:flex;gap:10px;align-items:center">
+      <div style="width:36px;height:36px;border-radius:8px;background:rgba(16,185,129,.15);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0">⏳</div>
+      <div><div style="font-size:13px;font-weight:600">ממתין לאישור</div><div style="font-size:12px;color:var(--muted)">pending_approval — בשלב כלשהו של הflow</div></div>
+    </div>
+    <div style="display:flex;gap:10px;align-items:center">
+      <div style="width:36px;height:36px;border-radius:8px;background:rgba(16,185,129,.15);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0">✅</div>
+      <div><div style="font-size:13px;font-weight:600">אושר</div><div style="font-size:12px;color:var(--muted)">completed — כל השלבים עברו</div></div>
+    </div>
+    <div style="display:flex;gap:10px;align-items:center">
+      <div style="width:36px;height:36px;border-radius:8px;background:rgba(239,68,68,.15);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0">❌</div>
+      <div><div style="font-size:13px;font-weight:600">נדחה</div><div style="font-size:12px;color:var(--muted)">rejected — עם סיבה אם הוזנה</div></div>
+    </div>
+    <div style="display:flex;gap:10px;align-items:center">
+      <div style="width:36px;height:36px;border-radius:8px;background:rgba(59,130,246,.15);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0">🔄</div>
+      <div><div style="font-size:13px;font-weight:600">בביצוע</div><div style="font-size:12px;color:var(--muted)">pending_execution — אושר, ממתין לביצוע</div></div>
+    </div>
+  </div>
+  <div class="card" style="margin-top:16px;padding:12px 14px">
+    <div style="font-size:12px;font-weight:600;margin-bottom:6px">🤖 AI לשאילתות חופשיות</div>
+    <div style="font-size:12px;color:var(--muted)">Pattern matching לביטויים נפוצים (ממתין / אושר / נדחה). Claude Haiku כ-fallback לשאילתות מורכבות יותר.</div>
+  </div>
+</div>
+<div class="right">
+  <div class="phone tall">
+    <div class="wa-status"></div>
+    <div class="wa-hdr"><div class="wa-avatar">B</div><div class="wa-contact"><span>BizFlow Bot</span><span>מחובר</span></div></div>
+    <div class="wa-chat">
+      <div class="m u"><div class="m-body"><p>מה הסטטוס של הבקשות שלי</p></div><span class="m-time">11:15</span></div>
+      <div class="m b"><div class="m-body"><p><strong>📋 הבקשות האחרונות שלך:</strong></p><p></p><p>1. ימי מחלה | 28-29/04</p><p>⏳ ממתין לאישור</p><p style="margin-top:4px">2. שעות נוספות | 25/04</p><p>✅ אושר</p><p style="margin-top:4px">3. חופשה | 01-07/05</p><p>❌ נדחה</p><p style="font-size:10px;color:#999">סיבה: חופשה כבר קיימת</p><p style="margin-top:4px">4. החזר הוצאות | 20/04</p><p>🔄 בביצוע</p></div><span class="m-time">11:15</span></div>
+      <div class="wa-sys">לפרטים — כתוב/י מספר (1–4)</div>
+      <div class="m u"><div class="m-body"><p>1</p></div><span class="m-time">11:16</span></div>
+      <div class="m b"><div class="m-body"><p><strong>📄 ימי מחלה — #4821</strong></p><p>תאריכים: 28-29/04 (2 ימים)</p><p>הוגש: 28/04 בשעה 10:33</p><p>סטטוס: ⏳ ממתין לאישור</p><p>שלב: 1 מתוך 1</p></div><span class="m-time">11:16</span></div>
+      <div class="wa-btns row"><div class="wa-btn">🏠 תפריט</div><div class="wa-btn">📋 חזרה לרשימה</div></div>
+    </div>
+  </div>
+</div>
+</div>
+</div>
+
+
+<!-- ╔══════════════════════════════╗ -->
+<!-- ║  6 — MY SHIFTS + CONFIRM     ║ -->
+<!-- ╚══════════════════════════════╝ -->
+<div class="slide" id="s6" style="background:var(--bg)">
+<div class="slide-header"><div class="slide-num">6</div><h4>עובד — משמרות ואישור</h4><span class="tag">ShiftAssignment</span></div>
+<div class="slide-inner" style="padding-top:24px">
+<div class="left">
+  <div class="label">שני פיצ'רים</div>
+  <h3>המשמרות שלי<br>+ אישור נוכחות</h3>
+  <p class="body">עובד רואה את המשמרות הקרובות ויכול לאשר בלחיצה אחת — עדכון ShiftAssignment מ-<strong style="color:#e2e8f0">assigned → confirmed</strong>.</p>
+  <div style="margin-top:16px;display:flex;flex-direction:column;gap:10px">
+    <div class="card" style="padding:12px 14px">
+      <div style="font-size:12px;font-weight:600;margin-bottom:4px">📅 תצוגת שבוע</div>
+      <div style="font-size:12px;color:var(--muted)">משמרות מה-ShiftAssignment הנוכחי — שם, שעות, סניף. עד 7 ימים קדימה.</div>
+    </div>
+    <div class="card green" style="padding:12px 14px">
+      <div style="font-size:12px;font-weight:600;color:var(--emerald);margin-bottom:4px">✅ אישור משמרת</div>
+      <div style="font-size:12px;color:var(--muted)">לחיצה על "אשר" → ShiftAssignment.status = confirmed. המנהל רואה מי אישר בזמן אמת.</div>
+    </div>
+    <div class="card" style="padding:12px 14px">
+      <div style="font-size:12px;font-weight:600;margin-bottom:4px">⚠️ שדה: daysOfWeek + dateRange</div>
+      <div style="font-size:12px;color:var(--muted)">ShiftAssignment מגדיר טווח תאריכים + ימים בשבוע. הבוט מחשב את התאריכים הספציפיים הבאים.</div>
+    </div>
+  </div>
+</div>
+<div class="right">
+  <div class="phone tall">
+    <div class="wa-status"></div>
+    <div class="wa-hdr"><div class="wa-avatar">B</div><div class="wa-contact"><span>BizFlow Bot</span><span>מחובר</span></div></div>
+    <div class="wa-chat">
+      <div class="wa-btns"><div class="wa-btn tapped">📅 המשמרות שלי</div></div>
+      <div class="m u"><div class="m-body"><p>המשמרות שלי</p></div><span class="m-time">08:05</span></div>
+      <div class="m b"><div class="m-body"><p><strong>📅 משמרות השבוע:</strong></p><p></p><p>▶️ <strong>מחר — ראשון 29/04</strong></p><p>⏰ 09:00–17:00</p><p>📍 סניף תל אביב</p><p>סטטוס: ✅ מאושר</p><p></p><p>יום שני 30/04</p><p>⏰ 12:00–20:00</p><p>📍 סניף תל אביב</p><p>סטטוס: ⏳ ממתין לאישור</p><p></p><p>יום רביעי 01/05</p><p>⏰ 09:00–17:00</p><p>📍 סניף תל אביב</p><p>סטטוס: ⏳ ממתין לאישור</p></div><span class="m-time">08:05</span></div>
+      <div class="wa-btns row"><div class="wa-btn tapped">✓ אשר 30/04</div><div class="wa-btn">✓ אשר 01/05</div></div>
+      <div class="m u"><div class="m-body"><p>אשר 30/04</p></div><span class="m-time">08:06</span></div>
+      <div class="m b"><div class="m-body"><p>✅ <strong>המשמרת אושרה!</strong></p><p>שני 30/04 | 12:00–20:00</p><p>סניף תל אביב</p></div><span class="m-time">08:06</span></div>
+    </div>
+  </div>
+</div>
+</div>
+</div>
+
+
+<!-- ╔══════════════════════════════╗ -->
+<!-- ║  7 — ABSENCE + REFERRAL      ║ -->
+<!-- ╚══════════════════════════════╝ -->
+<div class="slide" id="s7" style="background:var(--bg)">
+<div class="slide-header"><div class="slide-num">7</div><h4>עובד — היעדרות + המלצת עובד</h4><span class="tag">EmployeeNote · Candidate</span></div>
+<div class="slide-inner" style="padding-top:24px;gap:32px">
+<div class="left" style="max-width:340px">
+  <div class="label">שני פיצ'רים</div>
+  <h3 style="font-size:20px">היעדרות:<br>הודעה פשוטה<br>שמגיעה למנהל</h3>
+  <p class="body" style="font-size:13px">עובד מדווח "לא אגיע מחר" → בוחר את המשמרת הרלוונטית → נוצר EmployeeNote מקושר. המנהל מקבל התראת WhatsApp.</p>
+  <div style="height:16px"></div>
+  <h3 style="font-size:20px">המלצת חבר:<br>שם + טלפון → Candidate</h3>
+  <p class="body" style="font-size:13px">עובד שולח שם ומספר → מיד נוצר Candidate record עם source=employee-referral. אפס friction לחסוך זמן גיוס.</p>
+</div>
+<div class="right" style="gap:20px;display:flex">
+  <div class="phone short">
+    <div class="wa-status"></div>
+    <div class="wa-hdr"><div class="wa-avatar">B</div><div class="wa-contact"><span>BizFlow Bot</span></div></div>
+    <div class="wa-chat">
+      <div class="m u"><div class="m-body"><p>לא אוכל להגיע מחר</p></div></div>
+      <div class="m b"><div class="m-body"><p>הבנתי 🙏 איזו משמרת?</p></div></div>
+      <div class="wa-btns"><div class="wa-btn tapped">ראשון 29/04 | 09:00–17:00</div></div>
+      <div class="m u"><div class="m-body"><p>ראשון 29/04</p></div></div>
+      <div class="m b"><div class="m-body"><p>✅ ההיעדרות נרשמה.</p><p>המנהל/ת יקבל עדכון.</p></div></div>
+      <div class="wa-btns row"><div class="wa-btn">💬 הוסף הערה</div><div class="wa-btn">🏠 תפריט</div></div>
+    </div>
+  </div>
+  <div class="phone short">
+    <div class="wa-status"></div>
+    <div class="wa-hdr"><div class="wa-avatar">B</div><div class="wa-contact"><span>BizFlow Bot</span></div></div>
+    <div class="wa-chat">
+      <div class="wa-btns"><div class="wa-btn tapped">👥 המלצת חבר</div></div>
+      <div class="m u"><div class="m-body"><p>המלצת חבר</p></div></div>
+      <div class="m b"><div class="m-body"><p>👥 <strong>המלצת עובד</strong></p><p>שם המועמד/ת:</p></div></div>
+      <div class="m u"><div class="m-body"><p>יוסי כהן</p></div></div>
+      <div class="m b"><div class="m-body"><p>מספר טלפון:</p></div></div>
+      <div class="m u"><div class="m-body"><p>0501234567</p></div></div>
+      <div class="m b"><div class="m-body"><p>✅ <strong>ההמלצה נרשמה!</strong></p><p>יוסי יצור קשר בקרוב.</p><p>תודה! 🙌</p></div></div>
+    </div>
+  </div>
+</div>
+</div>
+</div>
+
+
+<!-- ╔══════════════════════════════╗ -->
+<!-- ║  8 — PENDING APPROVALS       ║ -->
+<!-- ╚══════════════════════════════╝ -->
+<div class="slide" id="s8" style="background:var(--bg)">
+<div class="slide-header"><div class="slide-num">8</div><h4>מנהל — אישורים ממתינים</h4><span class="tag blue">Manager Only</span></div>
+<div class="slide-inner" style="padding-top:24px">
+<div class="left">
+  <div class="label">פיצ'ר מנהל</div>
+  <h3>queue אישורים<br>חכם + מדויק</h3>
+  <p class="body">מנהל רואה רק את הבקשות שלו לאשר — מסונן לפי logika ה-approvalSteps. לא כמו ה-UI שמציג הכל לכולם.</p>
+  <div style="margin-top:12px;display:flex;flex-direction:column;gap:8px">
+    <div class="card blue" style="padding:12px 14px">
+      <div style="font-size:12px;font-weight:600;color:var(--blue);margin-bottom:4px">🎯 סינון מדויק</div>
+      <div style="font-size:12px;color:var(--muted)">direct_manager → submittingEmployee.managerId === botUser.id<br>by_position → positionId match<br>by_employee → explicit employeeId match</div>
+    </div>
+    <div class="card" style="padding:12px 14px">
+      <div style="font-size:12px;font-weight:600;margin-bottom:4px">✏️ עריכה לפני אישור</div>
+      <div style="font-size:12px;color:var(--muted)">מנהל יכול לערוך שדות (אם allowApproversToEditFields=true) בדיוק כמו שיכול ב-UI לפני שמאשר.</div>
+    </div>
+    <div class="card" style="padding:12px 14px">
+      <div style="font-size:12px;font-weight:600;margin-bottom:4px">❌ דחייה עם סיבה</div>
+      <div style="font-size:12px;color:var(--muted)">דחייה מחייבת הקלדת סיבה. הסיבה נשמרת ב-rejectionReason ומגיעה לעובד ב-WhatsApp.</div>
+    </div>
+  </div>
+</div>
+<div class="right">
+  <div class="phone tall">
+    <div class="wa-status"></div>
+    <div class="wa-hdr"><div class="wa-avatar">R</div><div class="wa-contact"><span>BizFlow Bot</span><span>מחובר</span></div></div>
+    <div class="wa-chat">
+      <div class="wa-date">היום</div>
+      <div class="m b"><div class="m-body"><p>שלום רונן! 👋</p><p>יש לך <strong>3 בקשות ממתינות.</strong></p></div></div>
+      <div class="wa-btns"><div class="wa-btn tapped">⏳ אישורים (3)</div></div>
+      <div class="m u"><div class="m-body"><p>אישורים</p></div></div>
+      <div class="m b"><div class="m-body"><p><strong>⏳ ממתינות לאישורך:</strong></p><p></p><p>1. אחמד מחמד</p><p>🤒 ימי מחלה | 28-29/04</p><p style="margin-top:3px">2. שרה לוי</p><p>🏖️ חופשה | 01-07/05</p><p style="margin-top:3px">3. דני כהן</p><p>⏰ שעות נוספות | 25/04</p></div></div>
+      <div class="wa-sys">כתוב/י מספר לפרטים</div>
+      <div class="m u"><div class="m-body"><p>1</p></div></div>
+      <div class="m b"><div class="m-body"><p><strong>📄 אחמד מחמד — ימי מחלה</strong></p><p>תאריכים: 28-29/04 (2 ימים)</p><p>תעודת מחלה: 📎 מצורפת</p><p>הוגש: 28/04 בשעה 10:33</p></div></div>
+      <div class="wa-btns row"><div class="wa-btn tapped">✅ אשר</div><div class="wa-btn">❌ דחה</div><div class="wa-btn">✏️ ערוך</div></div>
+      <div class="m u"><div class="m-body"><p>אשר</p></div></div>
+      <div class="m b"><div class="m-body"><p>✅ <strong>אושר!</strong></p><p>אחמד קיבל עדכון ב-WhatsApp.</p></div></div>
+    </div>
+  </div>
+</div>
+</div>
+</div>
+
+
+<!-- ╔══════════════════════════════╗ -->
+<!-- ║  9 — INTERVIEWS + SHIFTS     ║ -->
+<!-- ╚══════════════════════════════╝ -->
+<div class="slide" id="s9" style="background:var(--bg)">
+<div class="slide-header"><div class="slide-num">9</div><h4>מנהל — ראיונות + משמרות לא מאושרות</h4><span class="tag blue">Manager Only</span></div>
+<div class="slide-inner" style="padding-top:24px;gap:32px">
+<div class="left" style="max-width:320px">
+  <div class="label">שני פיצ'רים</div>
+  <h3 style="font-size:20px">ראיונות היום:<br>Briefing בוקר מהיר</h3>
+  <p class="body" style="font-size:13px">מנהל שולח "ראיונות היום" ורואה מי מגיע, מתי ולאיזה תפקיד — עם קישור חייגן ישיר לכל מועמד.</p>
+  <div style="height:16px"></div>
+  <h3 style="font-size:20px">לא אישרו:<br>שליחת תזכורת בלחיצה</h3>
+  <p class="body" style="font-size:13px">מנהל רואה מי עוד לא אישר את המשמרת של מחר. לחיצה אחת שולחת תזכורת WhatsApp לכולם.</p>
+  <div class="card amber" style="margin-top:16px;padding:12px 14px">
+    <div style="font-size:12px;font-weight:600;color:var(--amber);margin-bottom:4px">💡 Value prop</div>
+    <div style="font-size:12px;color:var(--muted)">מנהל סניף מקבל briefing בוקר מלא ב-30 שניות — אפס כניסה לUI בזמן שיא.</div>
+  </div>
+</div>
+<div class="right" style="gap:20px;display:flex">
+  <div class="phone short">
+    <div class="wa-status"></div>
+    <div class="wa-hdr"><div class="wa-avatar">R</div><div class="wa-contact"><span>BizFlow Bot</span></div></div>
+    <div class="wa-chat">
+      <div class="wa-btns"><div class="wa-btn tapped">📅 ראיונות היום</div></div>
+      <div class="m u"><div class="m-body"><p>ראיונות היום</p></div></div>
+      <div class="m b"><div class="m-body"><p><strong>📅 ראיונות היום — 29/04:</strong></p><p></p><p>1. מוחמד עלי</p><p>⏰ 10:00 | קופאי</p><p>📞 050-1234567</p><p style="margin-top:3px">2. רחל כהן</p><p>⏰ 14:30 | מלצרית</p><p>📞 052-9876543</p></div></div>
+      <div class="wa-btns row"><div class="wa-btn">📞 חייג למוחמד</div></div>
+    </div>
+  </div>
+  <div class="phone short">
+    <div class="wa-status"></div>
+    <div class="wa-hdr"><div class="wa-avatar">R</div><div class="wa-contact"><span>BizFlow Bot</span></div></div>
+    <div class="wa-chat">
+      <div class="wa-btns"><div class="wa-btn tapped">🔴 לא אישרו</div></div>
+      <div class="m u"><div class="m-body"><p>לא אישרו</p></div></div>
+      <div class="m b"><div class="m-body"><p><strong>⚠️ 2 עובדים לא אישרו</strong></p><p>את המשמרת מחר:</p><p></p><p>• אחמד מחמד</p><p>• שרה לוי</p></div></div>
+      <div class="wa-btns"><div class="wa-btn tapped">📨 שלח תזכורת לכולם</div></div>
+      <div class="m u"><div class="m-body"><p>שלח תזכורת</p></div></div>
+      <div class="m b"><div class="m-body"><p>✅ תזכורת נשלחה ל-2 עובדים.</p></div></div>
+    </div>
+  </div>
+</div>
+</div>
+</div>
+
+
+<!-- ╔══════════════════════════════╗ -->
+<!-- ║  10 — COVERAGE CHECK         ║ -->
+<!-- ╚══════════════════════════════╝ -->
+<div class="slide" id="s10" style="background:var(--bg)">
+<div class="slide-header"><div class="slide-num">10</div><h4>מנהל — כיסוי צוות</h4><span class="tag blue">Staff Coverage</span></div>
+<div class="slide-inner" style="padding-top:24px">
+<div class="left">
+  <div class="label">פיצ'ר מנהל</div>
+  <h3>כמה עובדים יש<br>לי מחר בכל שיפט?</h3>
+  <p class="body">מנהל בודק headcount לפי יום ושיפט. הבוט מחשב ShiftAssignments מאושרים ומציג בפירוט עם אזהרה אם מתחת למינימום.</p>
+  <div style="margin-top:16px;display:flex;flex-direction:column;gap:10px">
+    <div class="card green" style="padding:12px 14px">
+      <div style="font-size:12px;font-weight:600;color:var(--emerald);margin-bottom:4px">✅ מעל המינימום</div>
+      <div style="font-size:12px;color:var(--muted)">מספר assigned/confirmed >= staffRequirements.requiredCount</div>
+    </div>
+    <div class="card amber" style="padding:12px 14px">
+      <div style="font-size:12px;font-weight:600;color:var(--amber);margin-bottom:4px">⚠️ מתחת למינימום</div>
+      <div style="font-size:12px;color:var(--muted)">הבוט מציין בדיוק כמה חסרים ובאיזה תפקיד</div>
+    </div>
+    <div class="card" style="padding:12px 14px">
+      <div style="font-size:12px;font-weight:600;margin-bottom:4px">📊 השוואה לדרישות</div>
+      <div style="font-size:12px;color:var(--muted)">Shift.staffRequirements מגדיר את הminimum. הבוט עושה את ה-join אוטומטית.</div>
+    </div>
+  </div>
+</div>
+<div class="right">
+  <div class="phone tall">
+    <div class="wa-status"></div>
+    <div class="wa-hdr"><div class="wa-avatar">R</div><div class="wa-contact"><span>BizFlow Bot</span><span>מחובר</span></div></div>
+    <div class="wa-chat">
+      <div class="wa-btns"><div class="wa-btn tapped">👁️ כיסוי צוות</div></div>
+      <div class="m u"><div class="m-body"><p>כיסוי צוות</p></div></div>
+      <div class="m b"><div class="m-body"><p>לאיזה יום?</p></div></div>
+      <div class="wa-btns row"><div class="wa-btn">היום</div><div class="wa-btn tapped">מחר</div><div class="wa-btn">בחר יום</div></div>
+      <div class="m u"><div class="m-body"><p>מחר</p></div></div>
+      <div class="m b"><div class="m-body"><p><strong>👥 כיסוי מחר — ראשון 29/04:</strong></p><p></p><p>🌅 <strong>בוקר</strong> 08:00–14:00</p><p>3 עובדים ✅ (נדרש: 3)</p><p style="margin-top:3px">🌆 <strong>צהריים</strong> 12:00–18:00</p><p>4 עובדים ✅ (נדרש: 3)</p><p style="margin-top:3px">🌙 <strong>ערב</strong> 17:00–23:00</p><p>2 עובדים ⚠️ (נדרש: 3)</p><p style="margin-top:5px;color:#e65100;font-size:11px">⚠️ ערב: חסר 1 קופאי</p></div></div>
+      <div class="wa-btns row"><div class="wa-btn">👥 מי ערב?</div><div class="wa-btn">🏠 תפריט</div></div>
+    </div>
+  </div>
+</div>
+</div>
+</div>
+
+
+<!-- ╔══════════════════════════════╗ -->
+<!-- ║  11 — CUSTOMIZABILITY        ║ -->
+<!-- ╚══════════════════════════════╝ -->
+<div class="slide" id="s11" style="background:var(--bg)">
+<div class="slide-header"><div class="slide-num">11</div><h4>התאמה אישית — Copy &amp; Labels</h4><span class="tag amber">BotFeature · Token Editor</span></div>
+<div class="slide-inner" style="padding-top:24px">
+<div class="left">
+  <div class="label">ארכיטקטורת BotFeature</div>
+  <h3>כל טקסט בבוט<br>ניתן לעריכה</h3>
+  <p class="body">כל פיצ'ר הוא record עם שדות copy. ברירת מחדל מגיעה מובנית. Admin יכול לדרוס עם editor הטוקנים — אותו מנגנון שכבר קיים ב-WhatsApp templates.</p>
+  <div style="margin-top:16px">
+  <div class="struct-box" style="font-size:11px">
+<span class="c">// BotFeature record</span><br>
+{<br>
+&nbsp;&nbsp;<span class="k">featureType</span>: <span class="s">"pending_approvals"</span>,<br>
+&nbsp;&nbsp;<span class="k">menuItem</span>: {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="k">labelTokens</span>: [ <span class="c">/* expression */</span> ],<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="c">// default: "⏳ אישורים ({count})"</span><br>
+&nbsp;&nbsp;},<br>
+&nbsp;&nbsp;<span class="k">itemTemplate</span>: {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="k">titleTokens</span>: [ <span class="c">/* expression */</span> ],<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="c">// default: "{employee.firstName} — {event.name}"</span><br>
+&nbsp;&nbsp;},<br>
+&nbsp;&nbsp;<span class="k">requiredPermissions</span>: [<span class="s">"approve_payroll"</span>],<br>
+&nbsp;&nbsp;<span class="k">config</span>: {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="k">requireRejectionReason</span>: <span class="t">true</span>,<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="k">allowFieldEditing</span>: <span class="t">true</span><br>
+&nbsp;&nbsp;}<br>
+}
+  </div>
+  </div>
+</div>
+<div class="right wide">
+  <div style="display:flex;flex-direction:column;gap:14px;width:100%;max-width:460px">
+    <div class="token-editor">
+      <div class="te-label">LABEL — כפתור בתפריט הראשי</div>
+      <div class="te-row">
+        <span class="token lit">⏳</span>
+        <span class="token lit">אישורים</span>
+        <span class="token lit">(</span>
+        <span class="token sys" title="system.pendingCount">count</span>
+        <span class="token lit">)</span>
+        <span class="token-add">+ הוסף</span>
+      </div>
+      <div class="te-preview">⏳ אישורים (3)</div>
+    </div>
+    <div class="token-editor">
+      <div class="te-label">ITEM TITLE — כל שורה ברשימת האישורים</div>
+      <div class="te-row">
+        <span class="token emp" title="employee.firstName">שם פרטי</span>
+        <span class="token lit"> — </span>
+        <span class="token ent" title="eventType.name">סוג בקשה</span>
+        <span class="token lit"> | </span>
+        <span class="token ent" title="entry.submittedDate">תאריך הגשה</span>
+        <span class="token-add">+ הוסף</span>
+      </div>
+      <div class="te-preview">אחמד מחמד — ימי מחלה | 28/04</div>
+    </div>
+    <div class="token-editor">
+      <div class="te-label">ACTIVATION MESSAGE — הודעה בכניסה לפיצ'ר</div>
+      <div class="te-row">
+        <span class="token lit">יש לך</span>
+        <span class="token sys">count</span>
+        <span class="token lit">בקשות ממתינות לאישורך:</span>
+        <span class="token-add">+ הוסף</span>
+      </div>
+      <div class="te-preview">יש לך 3 בקשות ממתינות לאישורך:</div>
+    </div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <div class="card" style="padding:10px 12px;flex:1;min-width:120px">
+        <div style="font-size:11px;font-weight:600;margin-bottom:4px">🟢 מקורות token</div>
+        <div style="font-size:11px;color:var(--muted)">employee.* · event.* · eventType.* · system.count · system.today</div>
+      </div>
+      <div class="card" style="padding:10px 12px;flex:1;min-width:120px">
+        <div style="font-size:11px;font-weight:600;margin-bottom:4px">🔄 ברירת מחדל</div>
+        <div style="font-size:11px;color:var(--muted)">כל פיצ'ר מגיע עם copy עברית מוכן. עריכה היא opt-in.</div>
+      </div>
+    </div>
+  </div>
+</div>
+</div>
+</div>
+
+
+<!-- ╔══════════════════════════════╗ -->
+<!-- ║  12 — BOT BUILDER UI         ║ -->
+<!-- ╚══════════════════════════════╝ -->
+<div class="slide" id="s12" style="background:var(--bg)">
+<div class="slide-header"><div class="slide-num">12</div><h4>Bot Builder — ממשק ניהול</h4><span class="tag">Admin UI · /WhatsAppBotBuilder</span></div>
+<div class="slide-inner" style="padding-top:20px">
+<div class="left" style="max-width:380px">
+  <div class="label">Admin UI</div>
+  <h3>כל הכלים<br>בדף אחד</h3>
+  <p class="body">ממשק ניהול מלא לבוט — הפעלה/כיבוי, עריכת copy, תצוגה מקדימה של שיחות, סימולציה אינטראקטיבית, מעקב sessions חיות, ואנליטיקס.</p>
+  <div style="margin-top:16px;display:flex;flex-direction:column;gap:8px">
+    <div class="step"><div class="step-num">1</div><div class="step-body"><strong>הגדרות</strong><span>הודעת פתיחה, timeout, תפריט ראשי — תצוגה חיה בphone frame</span></div></div>
+    <div class="step"><div class="step-num">2</div><div class="step-body"><strong>פיצ'רים</strong><span>toggle לכל פיצ'ר, עריכת token expressions, סדר תפריט</span></div></div>
+    <div class="step"><div class="step-num">3</div><div class="step-body"><strong>תצוגת שיחה ⭐</strong><span>phone frame מלא עם בועות WhatsApp — רנדר כל EmployeeEventType</span></div></div>
+    <div class="step"><div class="step-num">4</div><div class="step-body"><strong>קונסולת בדיקה</strong><span>סימולציה אינטראקטיבית — לחץ כמו עובד, ראה תשובות בוט אמיתיות</span></div></div>
+    <div class="step"><div class="step-num">5</div><div class="step-body"><strong>שיחות פעילות</strong><span>session monitor + יכולת סיום/איפוס sessions</span></div></div>
+    <div class="step"><div class="step-num">6</div><div class="step-body"><strong>אנליטיקס</strong><span>rate השלמה, נטישה לפי שדה, heatmap שעות פעילות</span></div></div>
+  </div>
+</div>
+<div class="right wide">
+  <div style="display:flex;flex-direction:column;gap:12px;width:100%;max-width:540px">
+    <div class="bb-tabs">
+      <div class="bb-tab active">⚙️ הגדרות</div>
+      <div class="bb-tab">🧩 פיצ'רים</div>
+      <div class="bb-tab">👁️ תצוגת שיחה</div>
+      <div class="bb-tab">🧪 בדיקה</div>
+      <div class="bb-tab">📡 sessions</div>
+      <div class="bb-tab">📊 אנליטיקס</div>
+    </div>
+    <div class="bb-content">
+      <div style="display:flex;gap:16px;height:100%">
+        <div style="flex:1;display:flex;flex-direction:column;gap:10px">
+          <div style="font-size:12px;font-weight:600;color:var(--muted)">הודעת פתיחה</div>
+          <div style="background:rgba(0,0,0,.2);border-radius:8px;padding:10px;border:1px solid rgba(255,255,255,.08);font-size:12px;direction:rtl;text-align:right;color:var(--text);font-family:'Noto Sans Hebrew','Inter',sans-serif">שלום {שם_עובד}! 👋<br>אני BizFlow — העוזר שלך.<br>מה תרצה לעשות היום?</div>
+          <div style="font-size:10px;color:var(--muted)">משתנים: {שם_עובד} {שם_מסעדה} {תאריך}</div>
+          <div style="font-size:12px;font-weight:600;color:var(--muted);margin-top:4px">timeout חוסר פעילות</div>
+          <div style="background:rgba(0,0,0,.2);border-radius:8px;padding:8px 10px;border:1px solid rgba(255,255,255,.08);font-size:12px;display:flex;align-items:center;justify-content:space-between">
+            <span style="color:var(--muted)">30 דקות</span>
+            <span style="color:var(--green);font-size:10px">▼ שנה</span>
+          </div>
+        </div>
+        <div style="display:flex;flex-direction:column;align-items:center;gap:6px;flex-shrink:0">
+          <div style="font-size:10px;color:var(--muted)">תצוגה מקדימה</div>
+          <div style="width:130px;height:200px;border:4px solid #1c1c1e;border-radius:20px;overflow:hidden;background:var(--wa-bg)">
+            <div style="background:var(--wa-header);height:36px;display:flex;align-items:flex-end;padding:4px 8px;gap:6px">
+              <div style="width:22px;height:22px;border-radius:50%;background:#25D366;font-size:9px;display:flex;align-items:center;justify-content:center;color:#fff">B</div>
+              <span style="font-size:9px;color:#fff;font-weight:600">BizFlow Bot</span>
+            </div>
+            <div style="padding:6px;display:flex;flex-direction:column;gap:3px">
+              <div style="background:#fff;border-radius:0 6px 6px 6px;padding:5px 6px;font-size:9px;direction:rtl;text-align:right;font-family:'Noto Sans Hebrew',sans-serif;box-shadow:0 1px 1px rgba(0,0,0,.1)">שלום אחמד! 👋<br>אני BizFlow — העוזר שלך.<br>מה תרצה לעשות היום?</div>
+              <div style="background:#fff;border-radius:4px;padding:4px 5px;font-size:8px;font-weight:600;color:#0a7cff;text-align:center;border-top:1px solid #eee">📝 הגש בקשה</div>
+              <div style="background:#fff;border-radius:4px;padding:4px 5px;font-size:8px;font-weight:600;color:#0a7cff;text-align:center;border-top:1px solid #eee">📋 הבקשות שלי</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+</div>
+</div>
+
+
+<!-- ╔══════════════════════════════╗ -->
+<!-- ║  13 — ARCHITECTURE           ║ -->
+<!-- ╚══════════════════════════════╝ -->
+<div class="slide" id="s13" style="background:var(--bg)">
+<div class="slide-header"><div class="slide-num">13</div><h4>ארכיטקטורה</h4><span class="tag">7 Functions · 3 New Entities</span></div>
+<div class="slide-inner center" style="padding-top:20px;align-items:flex-start">
+<div style="display:flex;gap:20px;width:100%">
+  <div style="flex:1;display:flex;flex-direction:column;gap:12px">
+    <div style="font-size:12px;font-weight:600;color:var(--muted);letter-spacing:.5px;text-transform:uppercase">Entities חדשות</div>
+    <div class="arch-node"><div class="icon">💬</div><h5>WhatsAppBotSession</h5><p>state machine לכל מספר טלפון. phone, employeeId, state, collectedValues, pendingFields snapshot, lastActivityAt</p></div>
+    <div class="arch-node"><div class="icon">🧩</div><h5>BotFeature</h5><p>כל פיצ'ר כ-record: featureType, menuItem tokens, itemTemplate tokens, requiredPermissions, config</p></div>
+    <div class="arch-node"><div class="icon">📋</div><h5>WhatsAppBotLog</h5><p>debug log נפרד מ-WhatsAppMessage. eventType, stateFrom/To, fieldId, errorMessage, payload</p></div>
+  </div>
+  <div style="flex:1;display:flex;flex-direction:column;gap:12px">
+    <div style="font-size:12px;font-weight:600;color:var(--muted);letter-spacing:.5px;text-transform:uppercase">Functions חדשות</div>
+    <div class="arch-node" style="padding:12px 14px"><div class="icon" style="font-size:18px">🔌</div><h5 style="font-size:13px">handleWhatsAppBotInbound</h5><p style="font-size:11px">webhook ראשי. normalize payload → identify employee → load session → dispatch → send</p></div>
+    <div class="arch-node" style="padding:12px 14px"><div class="icon" style="font-size:18px">📤</div><h5 style="font-size:13px">sendWhatsAppBotMessage</h5><p style="font-size:11px">BotMessage union → Meta Direct / 99Digital API. text / buttons / list</p></div>
+    <div class="arch-node" style="padding:12px 14px"><div class="icon" style="font-size:18px">📁</div><h5 style="font-size:13px">downloadWhatsAppMedia + uploadBotFile</h5><p style="font-size:11px">WhatsApp CDN → Base44 storage. URL קבוע נשמר ב-fieldValues</p></div>
+    <div class="arch-node" style="padding:12px 14px"><div class="icon" style="font-size:18px">🤖</div><h5 style="font-size:13px">resolveStatusQueryIntent</h5><p style="font-size:11px">pattern match → Claude Haiku fallback → structured intent</p></div>
+    <div class="arch-node" style="padding:12px 14px"><div class="icon" style="font-size:18px">✅</div><h5 style="font-size:13px">createEmployeeEventFromSession</h5><p style="font-size:11px">validates + creates EmployeeEvent. strips __phase sentinels. triggers approval flow.</p></div>
+    <div class="arch-node" style="padding:12px 14px"><div class="icon" style="font-size:18px">🧹</div><h5 style="font-size:13px">cleanExpiredBotSessions</h5><p style="font-size:11px">CRON — מוחק sessions ישנות, log records מעל 30 יום</p></div>
+  </div>
+</div>
+</div>
+</div>
+
+
+<!-- ╔══════════════════════════════╗ -->
+<!-- ║  14 — ROADMAP                ║ -->
+<!-- ╚══════════════════════════════╝ -->
+<div class="slide" id="s14" style="background:var(--bg)">
+<div class="slide-header"><div class="slide-num">14</div><h4>Roadmap</h4><span class="tag">V1 · V2 · V3</span></div>
+<div class="slide-inner center" style="padding-top:24px;align-items:flex-start">
+<div class="roadmap full">
+  <div class="rm-col v1">
+    <div class="rm-header"><div class="rm-badge">V1</div><span>Core Bot</span><small>~6–8 weeks</small></div>
+    <div class="rm-list">
+      <div class="rm-item"><div class="rm-dot"></div>Entities: WhatsAppBotSession + BotFeature + BotLog</div>
+      <div class="rm-item"><div class="rm-dot"></div>handleWhatsAppBotInbound + sendWhatsAppBotMessage</div>
+      <div class="rm-item"><div class="rm-dot"></div>שינוי שם: PayrollEntry → EmployeeEvent</div>
+      <div class="rm-item"><div class="rm-dot"></div>פיצ'ר: הגשת EmployeeEvent (כל סוג מאושר)</div>
+      <div class="rm-item"><div class="rm-dot"></div>פיצ'ר: סטטוס הבקשות + AI query</div>
+      <div class="rm-item"><div class="rm-dot"></div>פיצ'ר: משמרות + אישור</div>
+      <div class="rm-item"><div class="rm-dot"></div>פיצ'ר: היעדרות + המלצת עובד</div>
+      <div class="rm-item"><div class="rm-dot"></div>פיצ'ר: אישורים ממתינים (מנהל)</div>
+      <div class="rm-item"><div class="rm-dot"></div>פיצ'ר: ראיונות + unconfirmed + coverage</div>
+      <div class="rm-item"><div class="rm-dot"></div>Bot Builder UI: הגדרות + פיצ'רים + preview</div>
+    </div>
+  </div>
+  <div class="rm-col v2">
+    <div class="rm-header"><div class="rm-badge">V2</div><span>Enrichment</span><small>after V1 stable</small></div>
+    <div class="rm-list">
+      <div class="rm-item"><div class="rm-dot"></div>פיצ'ר: תלוש שכר (PayrollReport)</div>
+      <div class="rm-item"><div class="rm-dot"></div>פיצ'ר: התקדמות הכשרה (TrainingProcess)</div>
+      <div class="rm-item"><div class="rm-dot"></div>פיצ'ר: בדיקת מועמד (מנהל)</div>
+      <div class="rm-item"><div class="rm-dot"></div>פיצ'ר: עדכון סטטוס מועמד (מנהל)</div>
+      <div class="rm-item"><div class="rm-dot"></div>Bot Builder: Test Console אינטראקטיבי</div>
+      <div class="rm-item"><div class="rm-dot"></div>Bot Builder: Active Sessions monitor</div>
+      <div class="rm-item"><div class="rm-dot"></div>Token Editor UI לכל copy field</div>
+      <div class="rm-item"><div class="rm-dot"></div>Proactive notifications (approval updates)</div>
+      <div class="rm-item"><div class="rm-dot"></div>Session resume אחרי timeout</div>
+    </div>
+  </div>
+  <div class="rm-col v3">
+    <div class="rm-header"><div class="rm-badge">V3</div><span>Advanced</span><small>needs schema work</small></div>
+    <div class="rm-list">
+      <div class="rm-item"><div class="rm-dot"></div>Bot Builder: Analytics dashboard</div>
+      <div class="rm-item"><div class="rm-dot"></div>אישור training module (מנטור)</div>
+      <div class="rm-item"><div class="rm-dot"></div>פיצ'ר: batch expiry alerts (מטבח)</div>
+      <div class="rm-item"><div class="rm-dot"></div>תמיכה בערבית (ar locale)</div>
+      <div class="rm-item"><div class="rm-dot"></div>Custom featureType (webhook-backed)</div>
+      <div class="rm-item"><div class="rm-dot"></div>Bot Analytics → integration עם HR dashboard</div>
+    </div>
+  </div>
+</div>
+</div>
+</div>
+
+</div><!-- end #deck -->
+
+<!-- Navigation -->
+<div id="nav"></div>
+<button id="prev">← קודם</button>
+<div id="counter">1 / 14</div>
+<button id="next">הבא →</button>
+
+<script>
+function unlock(){
+  const v=document.getElementById('pwd').value;
+  if(v==='galbachar'){
+    document.getElementById('gate').style.display='none';
+    document.getElementById('deck').style.display='block';
+    init();
+  } else {
+    document.getElementById('gate-err').style.display='block';
+    document.getElementById('pwd').style.borderColor='#ef4444';
+    setTimeout(()=>{
+      document.getElementById('gate-err').style.display='none';
+      document.getElementById('pwd').style.borderColor='rgba(255,255,255,.15)';
+    },2000);
+  }
+}
+
+function init(){
+  const slides=document.querySelectorAll('.slide');
+  const nav=document.getElementById('nav');
+  const counter=document.getElementById('counter');
+  let cur=0;
+
+  slides.forEach((_,i)=>{
+    const d=document.createElement('div');
+    d.className='dot'+(i===0?' on':'');
+    d.title=`שקופית ${i+1}`;
+    d.onclick=()=>go(i);
+    nav.appendChild(d);
+  });
+
+  function go(n){
+    slides[cur].classList.remove('active');
+    nav.children[cur].classList.remove('on');
+    cur=(n+slides.length)%slides.length;
+    slides[cur].classList.add('active');
+    nav.children[cur].classList.add('on');
+    counter.textContent=`${cur+1} / ${slides.length}`;
+    document.getElementById('prev').style.opacity=cur===0?'0.3':'1';
+    document.getElementById('next').style.opacity=cur===slides.length-1?'0.3':'1';
+  }
+
+  document.getElementById('prev').onclick=()=>go(cur-1);
+  document.getElementById('next').onclick=()=>go(cur+1);
+  document.addEventListener('keydown',e=>{
+    if(e.key==='ArrowLeft'||e.key==='ArrowUp') go(cur-1);
+    if(e.key==='ArrowRight'||e.key==='ArrowDown') go(cur+1);
+  });
+
+  go(0);
+}
+
+// Focus password input on load
+window.onload=()=>document.getElementById('pwd').focus();
+</script>
+</body>
+</html>
